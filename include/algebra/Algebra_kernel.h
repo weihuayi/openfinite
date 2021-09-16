@@ -2,6 +2,8 @@
 #define AlgebraKernel_h
 
 #include "Matrix.h"
+#include "RMatrix.h"
+#include "CMatrix.h"
 #include "CSRMatrix.h"
 #include "Vector.h"
 #include "linalg.h"
@@ -14,6 +16,9 @@ class Algebra_kernel
 {
 public:
     typedef typename AlgebraObject::Matrix<F, I> Matrix;
+    typedef typename AlgebraObject::RMatrix<F, I> RMatrix;
+    typedef typename AlgebraObject::CMatrix<F, I> CMatrix;
+
     typedef typename AlgebraObject::Vector<F, I> Vector;
 
     typedef typename AlgebraObject::CSRMatrix<F, I> CSRMatrix;

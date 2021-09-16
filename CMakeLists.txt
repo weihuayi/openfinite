@@ -118,6 +118,7 @@ if(NOT ${OpenBLAS_FOUND})
 else()
     include_directories(${OpenBLAS_INCLUDE_DIRS})
     message("Found OpenOpenBLAS! ${OpenBLAS_INCLUDE_DIRS}")
+    message("${OpenBLAS_LIBRARIES}")
 endif()
 
 enable_testing()

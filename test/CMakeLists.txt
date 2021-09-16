@@ -21,17 +21,17 @@ add_executable(test_array test_array.cpp)
 add_test(array test_array)
 
 add_executable(test_openblas test_openblas.cpp)
-add_test(openblas test_openblas)
-target_link_libraries(gmsh_test PRIVATE ${OpenBLAS_LIBRARIES})
+target_link_libraries(test_openblas PRIVATE ${OpenBLAS_LIBRARIES} pthread)
+add_test(Algebra test_openblas)
 
 add_executable(test_vector test_vector.cpp)
-add_test(vector test_vector)
+add_test(Common test_vector)
 
 add_executable(test_TriangleQuadrature test_TriangleQuadrature.cpp)
-add_test(TriangleQuadrature test_TriangleQuadrature)
+add_test(Quadrature test_TriangleQuadrature)
 
 add_executable(test_TetrahedronQuadrature test_TetrahedronQuadrature.cpp)
-add_test(TetrahedronQuadrature test_TetrahedronQuadrature)
+add_test(Quadrature test_TetrahedronQuadrature)
 
 add_executable(test_GaussLegendreQuadrature test_GaussLegendreQuadrature.cpp)
-add_test(GaussLegendreQuadrature test_GaussLegendreQuadrature)
+add_test(Quadrature test_GaussLegendreQuadrature)

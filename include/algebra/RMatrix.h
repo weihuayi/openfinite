@@ -1,5 +1,5 @@
-#ifndef Matrix_h
-#define Matrix_h
+#ifndef RMatrix_h
+#define RMatrix_h
 
 #include <iostream>
 #include <algorithm>
@@ -8,13 +8,13 @@ namespace OF {
 namespace AlgebraObject {
 
 template<typename F=double, typename I=int>
-struct Matrix
+struct RMatrix
 {
     F * data;
     I shape[2];
     I size;
 
-    Matrix(I nr, I nc, F val=0.0)
+    RMatrix(I nr, I nc, F val=0.0)
     {
         shape[0] = nr;
         shape[1] = nc;
@@ -23,7 +23,7 @@ struct Matrix
         std::fill_n(this->data, size, val);
     }
 
-    ~Matrix()
+    ~RMatrix()
     {
         delete [] data;
     }
@@ -51,9 +51,9 @@ struct Matrix
 };
 
 template<typename F, typename I>
-std::ostream& operator << (std::ostream & os, const Matrix<F, I> & m)
+std::ostream& operator << (std::ostream & os, const RMatrix<F, I> & m)
 {
-    std::cout << "Matrix("<< m.shape[0] << ","
+    std::cout << "RMatrix("<< m.shape[0] << ","
         << m.shape[1] << "):" << std::endl;
     for(I i = 0; i < m.shape[0]; i ++)
     {
@@ -70,4 +70,4 @@ std::ostream& operator << (std::ostream & os, const Matrix<F, I> & m)
 } // end of namespace AlgebraObject
 
 } // end of namespace OF
-#endif // end of Matrix_h
+#endif // end of RMatrix_h
