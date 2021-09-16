@@ -522,6 +522,15 @@ public:
       node[i] = (m_node[e[0]][i] + m_node[e[1]][i])/2.0;
   }
 
+  void edge_barycenter(std::vector<Node> & edgebarycenter)
+  {
+    int NE = number_of_edges();
+    edgebarycenter.resize(NE);
+    for(int i = 0; i < NE; i++)
+      edge_barycenter(i, edgebarycenter[i]);
+  }
+
+
   void cell_barycenter(const I i, Node & node)
   {
     auto & c = m_cell[i];
@@ -535,6 +544,19 @@ public:
     cellbarycenter.resize(NC);
     for(int i = 0; i < NC; i++)
       cell_barycenter(i, cellbarycenter[i]);
+  }
+
+  Vector edge_normal(const I & i)
+  {
+    auto v = edge_tangent(i);
+    return Vector(v[1], -v[0]);
+  }
+
+  Vector edge_tangent(const I & i)
+  {
+    auto e = m_edge[i];
+    auto v = m_node[e[1]] - m_node[e[0]];
+    return v/std::sqrt(v.squared_length());
   }
 
   F edge_measure(const I i)

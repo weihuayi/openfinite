@@ -77,6 +77,21 @@ struct Matrix
           data[i][j] = 0.0;
       }
     }
+    /**
+     * \brief 矩阵的行数
+     */
+    I number_of_rows()
+    {
+      return shape[0];
+    }
+
+    /**
+     * \brief 矩阵的列数
+     */
+    I number_of_columns()
+    {
+      return shape[1];
+    }
 
     /*
      *
@@ -186,10 +201,69 @@ struct Matrix
         return std::sqrt(sum);
     }
 
+    template<typename D>
+    Matrix<F, I> & operator *= (const D & s)
+    {
+      for(int i = 0; i < shape[0]; i++)
+      {
+        for(int j = 0; j < shape[1]; j++)
+        {
+          data[i][j] *= s;
+        }
+      }
+      return *this;
+    }
+
+    Matrix<F, I> & operator += (const Matrix<F, I> & s)
+    {
+      for(int i = 0; i < shape[0]; i++)
+      {
+        for(int j = 0; j < shape[1]; j++)
+        {
+          data[i][j] += s[i][j];
+        }
+      }
+      return *this;
+    }
+
 };
 
 template<typename F, typename I>
 std::string Matrix<F, I>::format = "full";
+
+template<typename F, typename I, typename D>
+inline Matrix<F, I> operator * (const Matrix<F, I> & m0, const D & s)
+{
+    auto nr = m0.shape[0];
+    auto nc = m0.shape[1];
+    Matrix<F, I> c(nr, nc);
+    for(auto i=0; i < nr; i++)
+    {
+      for(auto j=0; j < nc; j++)
+      {
+        c[i][j] = m0[i][j]*s;
+      }
+    }
+
+    return c;
+}
+
+template<typename F, typename I, typename D>
+inline Matrix<F, I> operator * (const D & s, const Matrix<F, I> & m0)
+{
+    auto nr = m0.shape[0];
+    auto nc = m0.shape[1];
+    Matrix<F, I> c(nr, nc);
+    for(auto i=0; i < nr; i++)
+    {
+      for(auto j=0; j < nc; j++)
+      {
+        c[i][j] = m0[i][j]*s;
+      }
+    }
+
+    return c;
+}
 
 template<typename F, typename I>
 inline Matrix<F, I> operator * (const Matrix<F, I> & m0, 

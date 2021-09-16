@@ -525,6 +525,14 @@ public:
     node[1] = (m_node[e[0]][1] + m_node[e[1]][1])/2.0;
   }
 
+  void edge_barycenter(std::vector<Node> & edgebarycenter)
+  {
+    int NE = number_of_edges();
+    edgebarycenter.resize(NE);
+    for(int i = 0; i < NE; i++)
+      edge_barycenter(i, edgebarycenter[i]);
+  }
+
   void cell_barycenter(const I i, Node & node)
   {
     auto & c = m_cell[i];
