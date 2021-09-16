@@ -20,6 +20,10 @@ add_test(TriangleMeshQuadrature test_TriangleMeshQuadrature)
 add_executable(test_array test_array.cpp)
 add_test(array test_array)
 
+add_executable(test_openblas test_openblas.cpp)
+add_test(openblas test_openblas)
+target_link_libraries(gmsh_test PRIVATE ${OpenBLAS_LIBRARIES})
+
 add_executable(test_vector test_vector.cpp)
 add_test(vector test_vector)
 
