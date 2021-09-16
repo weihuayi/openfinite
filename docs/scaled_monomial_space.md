@@ -3,24 +3,23 @@
 
 |次幂 |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |
 |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |
-|$k=0$: |    |   |   |    |    | 0: $1$ |    |    |    |    |    |
-|$k=1$: |     |    |    |    |  1:$\bar x$ |    |  2:$\bar y$
-|$k=2$: |     |    |    |  3:${\bar x}^2$ |    |  4:$\bar x\bar y$ |    | 5:${\bar y}^2$
-|$k=3$: |     |    |  6:${\bar x}^3$ |    |  7:${\bar x}^2\bar y$ |    | 8:$\bar x{\bar y}^2$ |    |  9:${\bar y}^3$
-|$k=4$: |     |  10:${\bar x}^4$ |    |  11:${\bar x}^3\bar y$ |    | 12:${\bar x}^2{\bar y}^2$ |    |  13:${\bar x}{\bar y}^3$ |    | 14:${\bar y}^4$
+|$k=0$: |    |   |   |    |    | 0: $1$||||||
+|$k=1$: |     |    |    |    |  1:$\bar x$ |    |  2:$\bar y$|||||
+|$k=2$: |     |    |    |  3:${\bar x}^2$ |    |  4:$\bar x\bar y$ |    | 5:${\bar y}^2$||||
+|$k=3$: |     |    |  6:${\bar x}^3$ |    | 7:${\bar x}^2\bar y$ |    | 8:$\bar x{\bar y}^2$ |    |  9:${\bar y}^3$|||
+|$k=4$: |     |  10:${\bar x}^4$ |    |  11:${\bar x}^3\bar y$ |    | 12:${\bar x}^2{\bar y}^2$ |    |  13:${\bar x}{\bar y}^3$ |    | 14:${\bar y}^4$|
 |$k=5$: |   15:${\bar x}^5$ |    |  16:${\bar x}^4\bar y$ |    | 17:${\bar x}^3{\bar y}^2$ |    | 18:${\bar x}^2{\bar y}^3$ |    | 19:${\bar x}{\bar y}^4$ |    |  20:${\bar y}^5$|
+
 </font>
 
 令 $K$ 是一个 $R^2$ 上的多边形, 面积为 $|K|$, 尺寸为 $h_K = \sqrt{|K|}$, 
-重心为 $\boldsymbol x_K = (x_K, y_K)$. 定义:
-
+重心为 $\boldsymbol x_K = (x_K, y_K)$​. 定义:
 $$
 \bar x = \frac{x - x_K}{h_K}, \quad \bar y = \frac{y - y_K}{h_K}
 $$
 
 记 $\boldsymbol \alpha = (\alpha_0, \alpha_1)$ 为任一二重非负整数指标, 
 则 $K$ 上的 **缩放单项式** 可表示为:
-
 $$
 \boldsymbol m_{\boldsymbol \alpha} = \bar{x}^{\alpha_0} \bar{y}^{\alpha_1}
 $$
@@ -84,6 +83,9 @@ $$
 $$
 \frac{\partial^2 \boldsymbol m_k}{\partial x \partial y}[[0, -1]] = 0
 $$
+
+## 程序实现
+
 
 
 

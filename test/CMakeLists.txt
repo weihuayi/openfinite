@@ -8,8 +8,14 @@ add_test(TriangleMesh test_TriangleMesh)
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(ScaledMonomialSpace2d test_ScaledMonomialSpace2d)
 
+add_executable(test_NedecFEM test_NedecFEM.cpp)
+add_test(NedecFEM test_NedecFEM)
+
 add_executable(test_InitTop test_InitTop.cpp)
 add_test(InitTop test_InitTop)
+
+add_executable(test_TriangleMeshQuadrature test_TriangleMeshQuadrature.cpp)
+add_test(TriangleMeshQuadrature test_TriangleMeshQuadrature)
 
 add_executable(test_array test_array.cpp)
 add_test(array test_array)

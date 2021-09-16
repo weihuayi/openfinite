@@ -4,6 +4,8 @@
  * \author Huayi Wei<weihuayi@xtu.edu.cn>
  * \date 2021.09.08
  */
+#ifndef GaussLegendreQuadrature_h
+#define GaussLegendreQuadrature_h
 #include <array>
 #include <vector>
 
@@ -88,3 +90,4 @@ private:
 };
 }
 }
+#endif //end of GaussLegendreQuadrature_h

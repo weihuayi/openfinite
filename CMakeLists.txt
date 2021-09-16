@@ -110,6 +110,16 @@ else()
     message("Found GMSH! ${GMSH_INCLUDE_DIR}")
 endif()
 
+# OpenBLAS 
+set(OpenBLAS_DIR "~/.local/openblas")
+find_package(OpenBLAS)
+if(NOT ${OpenBLAS_FOUND})
+    message("OpenOpenBLAS not found")
+else()
+    include_directories(${OpenBLAS_INCLUDE_DIRS})
+    message("Found OpenOpenBLAS! ${OpenBLAS_INCLUDE_DIRS}")
+endif()
+
 enable_testing()
 add_subdirectory(test)
 add_subdirectory(example)
