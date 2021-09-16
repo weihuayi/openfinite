@@ -8,6 +8,8 @@
 #include <initializer_list>
 #include <string>
 
+#include "MatrixType.h"
+
 namespace OF {
 namespace AlgebraObject {
 
@@ -19,7 +21,7 @@ struct Matrix
     F ** data;
     I shape[2];
 
-    static std::string format;
+    static MatrixType format;
 
     /*
      * 默认构造函数
@@ -229,7 +231,7 @@ struct Matrix
 };
 
 template<typename F, typename I>
-std::string Matrix<F, I>::format = "full";
+std::string Matrix<F, I>::format = MatrixType::F;
 
 template<typename F, typename I, typename D>
 inline Matrix<F, I> operator * (const Matrix<F, I> & m0, const D & s)
