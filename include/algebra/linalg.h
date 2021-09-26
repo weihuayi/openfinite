@@ -5,7 +5,10 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <lapacke.h>
 #include <initializer_list>
+
+#include "MatrixType.h"
 
 namespace OF {
 namespace AlgebraAlgrithom {
@@ -259,6 +262,46 @@ template<typename Matrix>
 void qr_mgs(Matrix & A)
 {
 
+}
+
+/**
+ * \brief 矩阵求逆
+ * \pama Matrix 矩阵参数
+ * \pama mat 求逆矩阵, 会将矩阵用逆矩阵覆盖
+ */
+template<typename Matrix>
+void matInv(Matrix & mat)
+{
+  assert(mat.shape[0]==mat.shape[1]);
+  typedef typename Matrix::Float Float;
+  auto & data = mat.data;
+  if(mat.format==OF::AlgebraObject::MatrixType::F)
+  {
+    auto N = mat.shape[0]; 
+    Float * newdata = new Float[N*N]; 
+    int idx=0;
+    for(int i = 0; i < N; i++)
+    {
+      for(int j = 0; j < N; j++)
+      {
+        newdata[idx++] = data[i][j];
+      }
+    }
+
+    int ipiv[N+1];
+    LAPACKE_dgetrf(LAPACK_COL_MAJOR, N, N, newdata, N, ipiv);
+    LAPACKE_dgetri(LAPACK_COL_MAJOR, N, newdata, N, ipiv);
+
+    idx=0;
+    for(int i = 0; i < N; i++)
+    {
+      for(int j = 0; j < N; j++)
+      {
+        data[i][j] = newdata[idx++];
+      }
+    }
+    delete[] newdata;
+  }
 }
 
 } // end of AlgebraAlgrithom

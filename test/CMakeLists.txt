@@ -6,10 +6,11 @@ add_executable(test_TriangleMesh test_TriangleMesh.cpp)
 add_test(TriangleMesh test_TriangleMesh)
 
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
-add_test(ScaledMonomialSpace2d test_ScaledMonomialSpace2d)
+add_test(FemSpace test_ScaledMonomialSpace2d)
 
 add_executable(test_NedecFEM test_NedecFEM.cpp)
-add_test(NedecFEM test_NedecFEM)
+target_link_libraries(test_NedecFEM PRIVATE ${OpenBLAS_LIBRARIES} pthread)
+add_test(FemSpace test_NedecFEM)
 
 add_executable(test_InitTop test_InitTop.cpp)
 add_test(InitTop test_InitTop)
@@ -24,8 +25,15 @@ add_executable(test_openblas test_openblas.cpp)
 target_link_libraries(test_openblas PRIVATE ${OpenBLAS_LIBRARIES} pthread)
 add_test(Algebra test_openblas)
 
+add_executable(test_Matrix test_Matrix.cpp)
+add_test(Algebra test_Matrix)
+
 add_executable(test_vector test_vector.cpp)
 add_test(Common test_vector)
+
+add_executable(test_inv test_inv.cpp)
+target_link_libraries(test_inv PRIVATE ${OpenBLAS_LIBRARIES} pthread)
+add_test(Algebra test_inv)
 
 add_executable(test_TriangleQuadrature test_TriangleQuadrature.cpp)
 add_test(Quadrature test_TriangleQuadrature)

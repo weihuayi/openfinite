@@ -231,6 +231,85 @@ public:
       }
   }
 
+  /**
+   * \brief 初始化网格的拓扑邻接关系 
+   * 
+   * \note 实现上提取所有单元的六个面，并对面的顶点进行排序，给每个面一个唯一整数编号
+   */
+  /*
+  void init_top()
+  {
+      m_face2cell.clear();
+      m_cell2face.clear();
+
+      auto NN = number_of_nodes();
+      auto NC = number_of_cells();
+      m_face2cell.reserve(2*NC); //TODO: 欧拉公式?
+      m_cell2face.resize(NC);
+      std::map<Face, I> fidxmap; // sorted face 到整体编号的映射
+
+      I NF = 0;
+      // 遍历所有单元
+      for(I i = 0; i < NC; i++)
+      {
+          for(I j = 0; j < 6; j++)
+          {
+             auto f = local_sorted_face(i, j); // 第 i 个单元的第 j 个 sorted face
+             auto it = fidxmap.find(f);
+             if(it == fidxmap.end())
+             {
+                m_cell2face[i][j] = NF;
+                fidxmap.insert(std::pair<Face, I>(f, NF));
+                m_face2cell.push_back(Face2cell{i, i, j, j});
+                NF++;
+             }
+             else
+             {
+                m_cell2face[i][j] = it->second;
+                m_face2cell[it->second][1] = i;
+                m_face2cell[it->second][3] = j;
+             }
+          }
+      }
+      fidxmap.clear();
+
+      m_face.resize(NF);
+      for(I i = 0; i < NF; i++)
+      {
+          auto & c = m_cell[m_face2cell[i][0]];
+          auto j = m_face2cell[i][2];
+          m_face[i][0] = c[m_localface[j][0]];
+          m_face[i][1] = c[m_localface[j][1]];
+          m_face[i][2] = c[m_localface[j][2]];
+          m_face[i][3] = c[m_localface[j][3]];
+      }
+
+      std::map<Edge, I> eidxmap; // sorted edge 到整体唯一编号的映射
+      m_cell2edge.resize(NC);
+      I NE = 0;
+      for(I i = 0; i < NC; i++)
+      {
+          for(I j = 0; j < 12; j++)
+          { 
+              auto & c = m_cell[i];
+              auto e = local_sorted_edge(i, j); 
+              auto it = eidxmap.find(e);
+              if(it == eidxmap.end())
+              {
+                  m_cell2edge[i][j] = NE;
+                  eidxmap.insert(std::pair<Edge, I>(e, NE));
+                  m_edge.push_back(Edge{c[m_localedge[j][0]], c[m_localedge[j][1]]});
+                  NE++; 
+              }
+             else
+             {
+                m_cell2edge[i][j] = it->second;
+             }
+          }
+      }
+  }
+  */
+
   F cell_quality(const I i)//TODO
   {
     auto s = cell_surface_area(i);

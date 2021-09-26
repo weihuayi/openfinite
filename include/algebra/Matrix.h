@@ -3,10 +3,11 @@
 
 #include <cmath>
 #include <cassert>
+#include <memory>
 
 #include <iostream>
 #include <initializer_list>
-#include <string>
+#include <string.h>
 
 #include "MatrixType.h"
 
@@ -203,6 +204,47 @@ struct Matrix
         return std::sqrt(sum);
     }
 
+    Matrix<F, I> transpose_multiply(const Matrix<F, I> & m1)
+    {
+      auto nr = shape[1];
+      auto nc = m1.shape[1];
+      auto n = shape[0];
+      Matrix<F, I> c(nr, nc);
+      for(auto i=0; i < nr; i++)
+      {
+        for(auto j=0; j < nc; j++)
+        {
+          for(auto k=0; k < n; k++)
+          {
+            c[i][j] += data[k][i]*m1[k][j];
+            if(i == 0 && j == 0)
+            {
+              std::cout<< c[i][j] << " " <<data[k][i]<< " " <<m1[k][j] <<std::endl;
+            }
+          }
+        }
+      }
+      return c;
+    }
+
+    Matrix<F, I> & operator = (const Matrix<F, I> & m)
+    {
+      if(this == &m)
+        return *this;
+
+      delete[] data;
+      shape[0] = m.shape[0];
+      shape[1] = m.shape[1];
+
+      data = new F*[shape[0]]; 
+      for(int i = 0; i < shape[0]; i++)
+      {
+        data[i] = new F[shape[1]];
+        memcpy(data[i], m.data[i], shape[1]*sizeof(F));
+      }
+      return *this;
+    }
+
     template<typename D>
     Matrix<F, I> & operator *= (const D & s)
     {
@@ -231,7 +273,7 @@ struct Matrix
 };
 
 template<typename F, typename I>
-std::string Matrix<F, I>::format = MatrixType::F;
+MatrixType Matrix<F, I>::format = MatrixType::F;
 
 template<typename F, typename I, typename D>
 inline Matrix<F, I> operator * (const Matrix<F, I> & m0, const D & s)
