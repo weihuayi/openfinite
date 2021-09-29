@@ -71,10 +71,9 @@ public:
   static int m_localface[6][6];
   static int m_localface2edge[6][4];
   static int m_refine[8][8];
-  static int m_index[12][4];
   static int m_num[8][8];
-  static int m_vtk_read_idx[8];
-  static int m_vtk_write_idx[8];
+  static int m_vtkidx[8];
+
 public:
 
   HexahedronMesh(){}
@@ -131,12 +130,12 @@ public:
 
   int* vtk_read_cell_index()
   {
-    return m_vtk_read_idx;
+    return m_vtkidx;
   }
 
   int* vtk_write_cell_index()
   {
-    return m_vtk_write_idx;
+    return m_vtkidx;
   }
 
   I vtk_cell_type(I TD=3)
@@ -160,83 +159,11 @@ public:
       return;
   }
 
-  void init_top()
-  {
-      m_face2cell.clear();
-      m_cell2face.clear();
-
-      auto NN = number_of_nodes();
-      auto NC = number_of_cells();
-      m_face2cell.reserve(2*NC); //TODO: 欧拉公式?
-      m_cell2face.resize(NC);
-      std::map<I, I> idxmap;
-
-      I NF = 0;
-      // 遍历所有单元
-      for(I i = 0; i < NC; i++)
-      {
-          for(I j = 0; j < 6; j++)
-          {
-             auto s = local_face_index(i, j);
-             auto it = idxmap.find(s);
-             if(it == idxmap.end())
-             {
-                m_cell2face[i][j] = NF;
-                idxmap.insert(std::pair<I, I>(s, NF));
-                m_face2cell.push_back(Face2cell{i, i, j, j});
-                NF++;
-             }
-             else
-             {
-                m_cell2face[i][j] = it->second;
-                m_face2cell[it->second][1] = i;
-                m_face2cell[it->second][3] = j;
-             }
-          }
-      }
-      idxmap.clear();
-
-      m_face.resize(NF);
-      for(I i = 0; i < NF; i++)
-      {
-          auto & c = m_cell[m_face2cell[i][0]];
-          auto j = m_face2cell[i][2];
-          m_face[i][0] = c[m_localface[j][0]];
-          m_face[i][1] = c[m_localface[j][1]];
-          m_face[i][2] = c[m_localface[j][2]];
-          m_face[i][3] = c[m_localface[j][3]];
-      }
-
-      m_cell2edge.resize(NC);
-      I NE = 0;
-      for(I i = 0; i < NC; i++)
-      {
-          for(I j = 0; j < 12; j++)
-          { 
-              auto & c = m_cell[i];
-              auto s = local_edge_index(i, j); 
-              auto it = idxmap.find(s);
-              if(it == idxmap.end())
-              {
-                  m_cell2edge[i][j] = NE;
-                  idxmap.insert(std::pair<I, I>(s, NE));
-                  m_edge.push_back(Edge{c[m_localedge[j][0]], c[m_localedge[j][1]]});
-                  NE++; 
-              }
-             else
-             {
-                m_cell2edge[i][j] = it->second;
-             }
-          }
-      }
-  }
-
   /**
    * \brief 初始化网格的拓扑邻接关系 
    * 
    * \note 实现上提取所有单元的六个面，并对面的顶点进行排序，给每个面一个唯一整数编号
    */
-  /*
   void init_top()
   {
       m_face2cell.clear();
@@ -308,26 +235,6 @@ public:
           }
       }
   }
-  */
-
-  F cell_quality(const I i)//TODO
-  {
-    auto s = cell_surface_area(i);
-    auto d = direction(i, 0);
-    auto l = std::sqrt(d.squared_length());
-    auto vol = cell_measure(i);
-    auto R = l/vol/12.0;
-    auto r = 3.0*vol/s;
-    return r*3.0/R;
-  }
-
-  void cell_quality(std::vector<F> & q)
-  {
-    auto NC = number_of_cells();
-    q.resize(NC);
-    for(I i = 0; i < NC; i++)
-      q[i] = cell_quality(i);
-  }
 
   F cell_surface_area(const I i) // 单元表面积
   {
@@ -338,24 +245,6 @@ public:
     s += face_measure(m_cell2face[i][4]);
     s += face_measure(m_cell2face[i][5]);
     return s;
-  }
-
-  Vector direction(const I i, const I j) //TODO
-  {
-    auto v10 = m_node[m_cell[i][m_index[3*j][0]]] - m_node[m_cell[i][m_index[3*j][1]]];
-    auto v20 = m_node[m_cell[i][m_index[3*j][0]]] - m_node[m_cell[i][m_index[3*j][2]]];
-    auto v30 = m_node[m_cell[i][m_index[3*j][0]]] - m_node[m_cell[i][m_index[3*j][3]]];
-
-    auto v1 = cross(v20, v30);
-    v1 *= v10.squared_length();
-
-    auto v2 = cross(v30, v10);
-    v2 *= v20.squared_length();
-
-    auto v3 = cross(v10, v20);
-    v3 *= v30.squared_length();
-
-    return v1 + v2 + v3;
   }
 
   void cell_dihedral_angle(F & max, F & min)
@@ -511,43 +400,82 @@ public:
           measure[i] = edge_measure(i);
   }
 
-  F face_measure(const I i)
+  /*
+   * \brief 计算第 i 个四边形面的面积
+   *
+   * \note 一个四边形面可以由如下的映射来定义
+   *
+   * \f[
+   *    x = x_0\phi_0(u, v) + x_1\phi_1(u, v) + x_2\phi_2(u, v) 
+   *      + x_3\phi_3(u, v)
+   * \f]
+   *
+   * 其中 \f$(u, v)\f$ 是参考单元 \f$[0, 1]^2\f$ 上的自变量，\f$\phi_i\f$
+   * 是四个顶点对应的形函数
+   */
+  template<typename FaceQuadrature>
+  F face_measure(const I i, FaceQuadrature & fq)
   {
-    /* TODO: 面积定义？
-     */
-      auto & f = m_face[i];
-      auto v1 = m_node[f[1]] - m_node[f[0]];
-      auto v2 = m_node[f[2]] - m_node[f[0]];
-      auto v3 = m_node[f[3]] - m_node[f[0]];
-      return 0.5*(std::sqrt(cross(v1, v2).squared_length()) + std::sqrt(cross(v2, v3).squared_length()));
+    F val = 0.0;
+    int NQ = fq.number_of_quadrature_points();
+    for(I n = 0; n < NQ; n++)
+    {
+      const auto & rnode = fq.quadrature_point(n);
+      auto w = fq.quadrature_weight(n);
+      val += face_jacobi_matrix_det(i, rnode)*w;
+    }
+    return val; 
   }
 
-  void face_measure(std::vector<F> & measure)
+  /*
+   * \brief 计算所有四边形面的面积
+   */
+  template<typename FaceQuadrature>
+  void face_measure(std::vector<F> & measure, FaceQuadrature & fq)
   {
-      auto NF = number_of_faces();
-      measure.resize(NF);
-      for(I i = 0; i < NF; i++)
-          measure[i] = face_measure(i);
+    auto NF = number_of_faces();
+    measure.resize(NF);
+    for(I i = 0; i < NF; i++)
+        measure[i] = face_measure(i, fq);
   }
 
-  F cell_measure(const I i)
+  /*
+   * \brief 计算六面体单元的体积
+   *
+   * \note
+   *
+   * \f[
+   *    x = x_0\phi_0(u, v, w) + x_1\phi_1(u, v, w) + x_2\phi_2(u, v, w) 
+   *      + x_3\phi_3(u, v, w) + x_4\phi_4(u, v, w) + x_5\phi_5(u, v, w)
+   *      + x_6\phi_6(u, v, w) + x_7\phi_7(u, v, w)
+   * \f]
+   */
+  template<typename CellQuadrature>
+  F cell_measure(const I i, CellQuadrature & cq)
   {
-    /*
-     * TODO: 体积定义
-     */
-      auto & c = m_cell[i];
-      auto v01 = m_node[c[1]] - m_node[c[0]];
-      auto v02 = m_node[c[2]] - m_node[c[0]];
-      auto v03 = m_node[c[3]] - m_node[c[0]];
-      return dot(cross(v01, v02), v03)/6.0;
+    F val = 0.0;
+    int NQ = cq.number_of_quadrature_points();
+    for(I n = 0; n < NQ; n++)
+    {
+      auto & rnode = cq.quadrature_point(n);
+      auto w = cq.quadrature_weight(n);
+      val += cell_jacobi_matrix_det(i, rnode)*w;
+    }
+    return val;
   }
 
-  void cell_measure(std::vector<F> & measure)
+  /*
+   * \brief 计算所有六面体单元的体积
+   *
+   *
+   */
+  template<typename CellQuadrature>
+  void cell_measure(std::vector<F> & measure, CellQuadrature & cq)
   {
       auto NC = number_of_cells();
       measure.resize(NC);
       for(I i = 0; i < NC; i++)
-          measure[i] = cell_measure(i);
+          measure[i] = cell_measure(i, cq);
   }
 
   // 实体重心
@@ -611,7 +539,7 @@ public:
     }
   }
 
-  void uniform_refine(const I n=1)//TODO
+  void uniform_refine(const I n=1)
   {
       for(I i=0; i < n; i++)
       {
@@ -632,6 +560,8 @@ public:
           {
              cell_barycenter(j, m_node[NN+NE+NF+j]); 
           }
+
+          //单元加密时, 子单元顶点的局部编号, 每个单元的顺序是{n, e, f, e, e, f, c, f}
           m_cell.resize(8*NC);
           for(I j = 0; j < NC; j++)
           { 
@@ -639,13 +569,13 @@ public:
               for(I k = 0; k < 8; k++)
               {
                 m_cell[k*NC + j][0] = c[k];
-                m_cell[k*NC + j][1] = NN+m_cell2edge[j][m_refine[k][1]];
-                m_cell[k*NC + j][2] = NN+m_cell2edge[j][m_refine[k][2]];
-                m_cell[k*NC + j][3] = NN+NE+m_cell2face[j][m_refine[k][3]];
-                m_cell[k*NC + j][4] = NN+m_cell2edge[j][m_refine[k][4]];
-                m_cell[k*NC + j][5] = NN+NE+m_cell2face[j][m_refine[k][5]];
-                m_cell[k*NC + j][6] = NN+NE+m_cell2face[j][m_refine[k][6]];
-                m_cell[k*NC + j][7] = NN+NE+NF+j;
+                m_cell[k*NC + j][1] = NN + m_cell2edge[j][m_refine[k][1]];
+                m_cell[k*NC + j][2] = NN + NE + m_cell2face[j][m_refine[k][2]];
+                m_cell[k*NC + j][3] = NN + m_cell2edge[j][m_refine[k][3]];
+                m_cell[k*NC + j][4] = NN + m_cell2edge[j][m_refine[k][4]];
+                m_cell[k*NC + j][5] = NN + NE + m_cell2face[j][m_refine[k][5]];
+                m_cell[k*NC + j][6] = NN + NE + NF + j ;
+                m_cell[k*NC + j][7] = NN + NE + m_cell2face[j][m_refine[k][7]];
               }
           }
 
@@ -849,11 +779,13 @@ public:
   }
 
 private:
-    /*
+    /**
+     * \brief 计算第 i 个 cell 的第 j 个 face 的全局唯一整数编号 
      *
-     * Notes
-     * -----
-     *  计算第 i 个 cell 的第 j 个 face 的全局唯一整数编号
+     * \param[in] i 单元编号
+     * \param[in] j 局部面的编号
+     *
+     * \warning 返回值可能会发生溢出
      */
     I local_face_index(I i, I j)
     {
@@ -869,16 +801,61 @@ private:
     }
 
     /*
+     * \brief 计算第 i 个 cell 的 j 条 edge 全局唯一整数编号
      *
-     * Notes
-     * -----
-     *  计算第 i 个 cell 的 j 条 edge 全局唯一整数编号
+     * \param[in] i 单元编号
+     * \param[in] j 局部边的编号
+     *
+     * \warning 返回值可能会发生溢出
+     *
      */
     I local_edge_index(I i, I j)
     {
         I e[2] = {m_cell[i][m_localedge[j][0]], m_cell[i][m_localedge[j][1]]};
         std::sort(e, e+2);
         return  e[0] + e[1]*(e[1]+1)/2;
+    }
+
+    /**
+     * \brief 计算第 i 个 cell 的 j 个 edge（顶点编号从大到小进行了排序）， 
+     *
+     * \param[in] i 单元编号
+     * \param[in] j 局部边的编号
+     *
+     * \return 返回一个顶点编号从小到大排序的 Edge 实体
+     *
+     * \note
+     *
+     */
+    Edge local_sorted_edge(I i, I j)
+    {
+      Edge e = {m_cell[i][m_localedge[j][0]], m_cell[i][m_localedge[j][1]]};
+      std::sort(e.begin(), e.end());
+      return e;
+    }
+
+    /**
+     * \brief 获得第 i 个 cell 的第 j 个 face， 
+     *
+     * \param[in] i cell 编号
+     * \param[in] j 局部 face 的编号
+     *
+     * \return 返回一个顶点编号从小到大排序的 Face 实体
+     *
+     * \note
+     *
+     */
+    Face local_sorted_face(I i, I j)
+    {
+      Face f = 
+      {
+          m_cell[i][m_localface[j][0]], 
+          m_cell[i][m_localface[j][1]], 
+          m_cell[i][m_localface[j][2]],
+          m_cell[i][m_localface[j][3]]
+      };
+      std::sort(f.begin(), f.end());
+      return  f;
     }
 
 private:
@@ -895,52 +872,44 @@ private:
 
 template<typename GK, typename Node, typename Vector>
 int HexahedronMesh<GK, Node, Vector>::m_localedge[12][2] = {
-  {0, 1}, {0, 2}, {0, 4}, {1, 3}, {1, 5}, {2, 3}, 
-  {2, 6}, {3, 7}, {4, 5}, {4, 6}, {5, 7}, {6, 7}
+    {0, 1}, {1, 2}, {2, 3}, {0, 3},
+    {0, 4}, {1, 5}, {2, 6}, {3, 7},
+    {4, 5}, {5, 6}, {6, 7}, {4, 7}
 };
 
 template<typename GK, typename Node, typename Vector>
 int HexahedronMesh<GK, Node, Vector>::m_localface[6][6] = {
-  {0, 2, 6, 4}, {1, 5, 7, 3}, {0, 1, 3, 2}, 
-  {4, 6, 7, 5}, {0, 4, 5, 1}, {6, 2, 3, 7}
+    {0, 3, 2, 1}, {4, 5, 6, 7}, // bottom and top faces
+    {0, 4, 7, 3}, {1, 2, 6, 5}, // left and right faces  
+    {0, 1, 5, 4}, {2, 3, 7, 6}  // front and back faces
 };
 
 template<typename GK, typename Node, typename Vector>
 int HexahedronMesh<GK, Node, Vector>::m_localface2edge[6][4] = {
-  {1,  6, 9, 2}, {4, 10, 7,  3}, {0,  3, 5, 1}, 
-  {9, 11, 10, 8}, {2,  8, 4, 0}, {6, 5, 7,  11} 
+    {3,  2, 1, 0}, {8, 9, 10, 11},
+    {4, 11, 7, 3}, {1, 6,  9,  5},
+    {0,  5, 8, 4}, {2, 7, 10,  6}
 };
 
-//单元加密时, 子单元顶点的局部编号, 每个单元的顺序是{n, e, e, f, e, f, f, c}
+//单元加密时, 子单元顶点的局部编号, 每个单元的顺序是{n, e, f, e, e, f, c, f}
 template<typename GK, typename Node, typename Vector>
 int HexahedronMesh<GK, Node, Vector>::m_refine[8][8] = {
-    {0, 0, 1, 2, 2, 4, 0, 0}, {1, 4, 3, 1, 0, 4, 2, 0},
-    {2, 5, 6, 5, 1, 2, 0, 0}, {3, 3, 7, 1, 5, 2, 5, 0},
-    {4, 8, 2, 4, 9, 3, 0, 0}, {5, 4, 8, 4, 10, 1, 3, 0},
-    {6, 11, 9, 3, 6, 5, 0, 0}, {7, 7, 10, 1, 11, 5, 3, 0}
+    {0, 0, 0, 3, 4, 4, 0, 2}, {1, 1, 0, 0, 5, 3, 0, 4},
+    {2, 2, 0, 1, 6, 5, 0, 3}, {3, 3, 0, 2, 7, 2, 0, 5},
+    {4, 11, 1, 8, 4, 2, 0, 4}, {5, 8, 1, 9, 5, 4, 0, 3},
+    {6, 9, 1, 10, 6, 3, 0, 5}, {7, 10, 1, 11, 7, 5, 0, 2}
 };
-
-template<typename GK, typename Node, typename Vector>
-int HexahedronMesh<GK, Node, Vector>::m_index[12][4] = {
-    {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2},
-    {1, 2, 0, 3}, {1, 0, 3, 2}, {1, 3, 2, 0},
-    {2, 0, 1, 3}, {2, 1, 3, 0}, {2, 3, 0, 1},
-    {3, 0, 2, 1}, {3, 2, 1, 0}, {3, 1, 0, 2}
-};
-
-template<typename GK, typename Node, typename Vector>
-int HexahedronMesh<GK, Node, Vector>::m_vtk_write_idx[8] = {0, 4, 6, 2, 1, 5, 7, 3};
-
-template<typename GK, typename Node, typename Vector>
-int HexahedronMesh<GK, Node, Vector>::m_vtk_read_idx[8] = {0, 4, 3, 7, 1, 5, 2, 6};
 
 template<typename GK, typename Node, typename Vector>
 int HexahedronMesh<GK, Node, Vector>::m_num[8][8] = {
-    {0, 1, 2, 3 ,4 ,5 ,6 ,7}, {1, 0, 5, 4, 3, 2, 7, 6},
-    {2, 3 ,6, 7, 0, 1, 4 ,5}, {3, 2, 1, 0, 7, 6, 5, 4}, 
-    {4, 5, 0, 1, 6, 7, 2, 3}, {5, 4, 7, 6, 1, 0, 3, 2},
-    {6, 7, 4, 5, 2, 3, 0, 1}, {7, 6, 3, 2, 5, 4, 1, 0}
-};
+  {0, 1, 2, 3, 4, 5, 6, 7}, {1, 2, 3, 0, 5, 6, 7, 4},
+  {2, 3, 0, 1, 6, 7, 4, 5}, {3, 0, 1, 2, 7, 4, 5, 6},
+  {4, 7, 6, 5, 0, 3, 2, 1}, {5, 4, 7, 6, 1, 0, 3, 2},
+  {6, 5, 4, 7, 2, 1, 0, 3}, {7, 6, 5, 4, 3, 2, 1, 0}};
+
+
+template<typename GK, typename Node, typename Vector>
+int HexahedronMesh<GK, Node, Vector>::m_vtkidx[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
 } // end of namespace Mesh 
 
