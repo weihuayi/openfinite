@@ -101,6 +101,10 @@ int main(int argc, char * argv[])
 
   CellQuality mq(mesh);
   mq.quality_of_mesh(cellQualityInit);
+  for(auto i : cellQualityInit)
+  {
+    std::cout<< i <<std::endl;
+  }
 
   PMeshOpt optAlg(mesh, quad, MPI_COMM_WORLD);
   clock_t S = clock();

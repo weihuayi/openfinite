@@ -180,7 +180,7 @@ public:
     mesh.insert(Node{1.0, 1.0, 1.0});
     mesh.insert(Node{0.0, 1.0, 1.0});
 
-    mesh.insert(Cell{0, 4, 3, 7, 1, 5, 2, 6});
+    mesh.insert(Cell{0, 1, 2, 3, 4, 5, 6, 7});
     mesh.init_top();
     return;
   }

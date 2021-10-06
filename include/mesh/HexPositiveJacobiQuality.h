@@ -60,13 +60,13 @@ inline double HexPositiveJacobiQuality<Mesh>::quality(int i)
   for(auto & idx : index)
   {
     const auto & x0 = node[cell[idx[0]]];
-    const auto & x4 = node[cell[idx[4]]];
-    const auto & x2 = node[cell[idx[2]]];
     const auto & x1 = node[cell[idx[1]]];
+    const auto & x3 = node[cell[idx[3]]];
+    const auto & x4 = node[cell[idx[4]]];
 
-    auto v1 = x4 - x0;
-    auto v2 = x2 - x0;
-    auto v3 = x1 - x0;
+    auto v1 = x1 - x0;
+    auto v2 = x3 - x0;
+    auto v3 = x4 - x0;
     
     auto l1 = std::sqrt(v1.squared_length());
     auto l2 = std::sqrt(v2.squared_length());
@@ -107,17 +107,17 @@ inline typename Mesh::Vector HexPositiveJacobiQuality<Mesh>::gradient(int c, int
   const auto & x3 = node[cell[idx[3]]]; 
   const auto & x4 = node[cell[idx[4]]]; 
   const auto & x5 = node[cell[idx[5]]]; 
-  const auto & x6 = node[cell[idx[6]]]; 
+  const auto & x7 = node[cell[idx[7]]]; 
 
-  auto v04 = x4-x0;  
-  auto v02 = x2-x0;  
-  auto v01 = x1-x0;  
-  auto v46 = x6-x4;  
-  auto v45 = x5-x4;  
-  auto v23 = x3-x2;  
-  auto v26 = x6-x2;  
-  auto v13 = x3-x1;  
-  auto v15 = x5-x1;  
+  auto v04 = x1-x0;  
+  auto v02 = x3-x0;  
+  auto v01 = x4-x0;  
+  auto v46 = x2-x1;  
+  auto v45 = x5-x1;  
+  auto v23 = x7-x3;  
+  auto v26 = x2-x3;  
+  auto v13 = x7-x4;  
+  auto v15 = x5-x4;  
 
   auto l04 = std::sqrt(v04.squared_length());  
   auto l02 = std::sqrt(v02.squared_length());  
