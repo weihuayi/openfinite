@@ -38,6 +38,9 @@ add_test(Quadrature test_TetrahedronQuadrature)
 add_executable(test_GaussLegendreQuadrature test_GaussLegendreQuadrature.cpp)
 add_test(Quadrature test_GaussLegendreQuadrature)
 
+add_executable(test_point_in_polygon test_point_in_polygon.cpp)
+add_test(PIP test_point_in_polygon)
+
 if(${OpenBLAS_FOUND})
     add_executable(test_NedecFEM test_NedecFEM.cpp)
     target_link_libraries(test_NedecFEM PRIVATE ${OpenBLAS_LIBRARIES} pthread)
