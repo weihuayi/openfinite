@@ -8,6 +8,12 @@ add_test(Mesh test_TriangleMesh)
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(FemSpace test_ScaledMonomialSpace2d)
 
+add_executable(test_Dof test_Dof.cpp)
+add_test(FemSpace test_Dof)
+
+add_executable(test_Multindex test_Multindex.cpp)
+add_test(Common test_Multindex)
+
 add_executable(test_InitTop test_InitTop.cpp)
 add_test(InitTop test_InitTop)
 

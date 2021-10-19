@@ -493,6 +493,41 @@ public:
     }
   }
 
+  /**
+   * \brief 计算右端向量 \f[((f, v_0), (f, v_1), ..., (f, v_{n-1}) \f]
+   */
+  void source_vector(std::function<Vector(const Node&)> & f, std::vector<double> & vec)
+  {
+    auto ldof = m_dof->number_of_local_dofs();
+    auto gdof = m_dof->number_of_dofs();
+    auto NC = m_mesh->number_of_cells();
+    vec.resize(gdof, 0);
+
+    for(int i = 0; i < NC; i++)
+    {
+      std::function<void(const Node&, Matrix&)> f_phi_i = [this, &i, f]
+        (const Node & point, Matrix & m)->void
+      {
+        Vector fval = f(point);
+        std::vector<Vector> pval;
+        basis(i, point, pval);
+        int N = pval.size();
+        m.reshape(N, 1);
+        for(int j = 0; j < N; j++)
+        {
+          m[j][0] = dot(fval, pval[j]);
+        }
+      };
+      Matrix mat;
+      m_integrator.integral(i, f_phi_i, mat);
+      auto c2d = m_dof->cell_to_dof(i);
+      for(int j = 0; j < mat.shape[0]; j++)
+      {
+        vec[c2d[j]] += mat[j][0];
+      }
+    }
+  }
+
   const std::shared_ptr<FKNDof> get_dof()
   {
     return m_dof;
