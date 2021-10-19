@@ -163,6 +163,59 @@ public:
         return (F(0) < val) - (val < F(0));
     }
 
+    static inline float isLeft(const Point_2 & p0,const Point_2 & p1, const Point_2 p2)
+    {
+      // 判断某点是在直线的左边还是右边
+      // p0,p1所在直线，判断p2在左还是在右
+      // return>0在左，return=0，在直线上，return<0在右
+      return ((p1[0]-p0[0])*(p2[1]-p0[1]) - (p2[0]-p0[0])*(p1[1]-p0[1]));
+    }
+
+    static int cn_PnPoly(const Point_2 & p,const std::vector<Point_2> & v, int n)
+    {
+      //cross number方法
+      //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
+      //n:多边形的顶点数
+      //return=0在多边形外，return=1在多边形内
+      int cn = 0;
+      
+      //对多边形的所有边进行循环
+      for (int i=0; i<n;i++)
+      {
+        if(((v[i][1]<=p[1]) && (v[i+1][1]>p[1]))
+          ||((v[i][1]>p[1]) && (v[i+1][1]<=p[1]))){
+            //利用相似三角形原理，计算射线与多边形边的相交点的x坐标
+            float vt = (float)(p[1]-v[i][1])/(v[i+1][1]-v[i][1]);
+            if(p[0]<v[i][0]+vt*(v[i+1][0]-v[i][0]))
+              ++cn;
+          }
+      }
+      return (cn&1);
+    }
+
+    static int wn_PnPoly(const Point_2 & p,const std::vector<Point_2> & v,int n)
+    {
+      // winding number 方法
+      //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
+      //n:多边形的顶点数
+      //return=0在多边形外，大于0在多边形内
+     
+      int wn = 0;
+      for(int i=0;i<n;i++){
+        if(v[i][1]<=p[1]){
+          if(v[i+1][1]>p[1])
+            if(isLeft(v[i],v[i+1],p)>0)
+              ++wn;
+          }
+        else {
+          if(v[i+1][1]<=p[1])
+            if(isLeft(v[i],v[i+1],p)<0)
+              --wn;
+        }
+    }
+      return wn;
+    }
+
 };
 
 template<typename F=double, typename I=int>
