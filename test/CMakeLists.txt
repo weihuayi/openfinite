@@ -8,6 +8,12 @@ add_test(Mesh test_TriangleMesh)
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(FemSpace test_ScaledMonomialSpace2d)
 
+add_executable(test_Dof test_Dof.cpp)
+add_test(FemSpace test_Dof)
+
+add_executable(test_Multindex test_Multindex.cpp)
+add_test(Common test_Multindex)
+
 add_executable(test_InitTop test_InitTop.cpp)
 add_test(InitTop test_InitTop)
 
@@ -31,6 +37,9 @@ add_test(Quadrature test_TetrahedronQuadrature)
 
 add_executable(test_GaussLegendreQuadrature test_GaussLegendreQuadrature.cpp)
 add_test(Quadrature test_GaussLegendreQuadrature)
+
+add_executable(test_point_in_polygon test_point_in_polygon.cpp)
+add_test(PIP test_point_in_polygon)
 
 if(${OpenBLAS_FOUND})
     add_executable(test_NedecFEM test_NedecFEM.cpp)

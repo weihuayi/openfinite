@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iomanip>
 #include <time.h>
+#include <functional>
 
 #include "TestMacro.h"
 
@@ -211,13 +212,48 @@ void test_dof(int p = 3)
   }
 }
 
+void test_source_vector(int p = 3)
+{
+  typedef TriMesh::Cell Cell;
+  typedef Space::BSMatrix BSMatrix;
+  auto mesh = std::make_shared<TriMesh>();
+  auto & nodes = mesh->nodes();
+  auto & cells = mesh->cells();
+
+  nodes.resize(4);
+  cells.resize(2);
+  nodes[0] = Node({0.0, 0.0});
+  nodes[1] = Node({2.0, 0.0});
+  nodes[2] = Node({2.0, 2.0});
+  nodes[3] = Node({0.0, 2.0});
+  cells[0] = Cell({0, 1, 2});
+  cells[1] = Cell({0, 2, 3});
+  mesh->init_top();
+
+  auto space = Space(mesh, p);
+  std::vector<double> sou_vec;
+
+  std::function<Vector(const Node&)> F = [] (const Node & p)->Vector 
+  {
+    return Vector(std::pow(p[0], 2), p[1]);
+  };
+
+  space.source_vector(F, sou_vec);
+  for(unsigned int i = 0; i < sou_vec.size(); i++)
+  {
+    std::cout<< "source_vector[i] = " << sou_vec[i] <<std::endl;
+  }
+
+}
+
 int main(int argc, char **argv)
 {
   int p = std::stoi(argv[1]);
   //test_coeff(p);
   //test_basis(p);
   //test_curl_basis(p);
-  test_mass_matrix(p);
+  //test_mass_matrix(p);
   //test_curl_matrix(p);
   //test_dof(p);
+  test_source_vector(p);
 }
