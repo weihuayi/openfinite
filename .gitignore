@@ -21,3 +21,4 @@ _minted*
 *.pyc
 __pycache__
 TestMacro.h
+app
