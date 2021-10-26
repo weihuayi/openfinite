@@ -3,6 +3,7 @@
 
 #include <cstddef>
 
+#include "enum.h"
 #include "Point_2.h"
 #include "Vector_2.h"
 #include "Point_3.h"
@@ -14,7 +15,9 @@
 #include "Level_set_function.h"
 #include "Bisection_alg.h"
 
+
 namespace OF {
+
 
 template<typename F=double, typename I=int>
 class Geometry_kernel_base
@@ -163,15 +166,27 @@ public:
         return (F(0) < val) - (val < F(0));
     }
 
-    static inline float isLeft(const Point_2 & p0,const Point_2 & p1, const Point_2 p2)
+    /**
+     * \brief 判断某点是在直线的左边还是右边
+     *
+     * \param[in]
+     * \param[out]
+     * \return
+     *
+     * \note
+     *
+     */
+    static inline float is_left(const Point_2 & p0,const Point_2 & p1, const Point_2 p2)
     {
-      // 判断某点是在直线的左边还是右边
-      // p0,p1所在直线，判断p2在左还是在右
-      // return>0在左，return=0，在直线上，return<0在右
       return ((p1[0]-p0[0])*(p2[1]-p0[1]) - (p2[0]-p0[0])*(p1[1]-p0[1]));
     }
 
-    static int cn_PnPoly(const Point_2 & p,const std::vector<Point_2> & v, int n)
+    /**
+     * \brief
+     *
+     */
+
+    static int bounded_side_2_cn(const Point_2 & p,const std::vector<Point_2> & v, int n)
     {
       //cross number方法
       //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
@@ -193,7 +208,7 @@ public:
       return (cn&1);
     }
 
-    static int wn_PnPoly(const Point_2 & p,const std::vector<Point_2> & v,int n)
+    static int bounded_side_2_wn(const Point_2 & p,const std::vector<Point_2> & v,int n)
     {
       // winding number 方法
       //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
