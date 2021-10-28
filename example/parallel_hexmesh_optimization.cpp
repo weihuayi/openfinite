@@ -177,10 +177,10 @@ int main(int argc, char * argv[])
 
     double i_min_q = * std::min_element(initdata.begin(), initdata.end());
     double i_max_q = * std::max_element(initdata.begin(), initdata.end());
-    double i_ave_q = std::accumulate(initdata.begin(), initdata.end(), 0)/NAC;
+    double i_ave_q = std::accumulate(initdata.begin(), initdata.end(), 0.0)/NAC;
     double o_min_q = * std::min_element(optdata.begin(), optdata.end());
     double o_max_q = * std::max_element(optdata.begin(), optdata.end());
-    double o_ave_q = std::accumulate(optdata.begin(), optdata.end(), 0)/NAC;
+    double o_ave_q = std::accumulate(optdata.begin(), optdata.end(), 0.0)/NAC;
 
     std::cout<< "总运行时间:" << end-start << std::endl;
     std::cout<< "初始网格单元最差质量为: " << i_max_q <<std::endl; 
