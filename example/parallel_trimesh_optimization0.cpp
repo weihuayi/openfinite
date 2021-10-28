@@ -103,60 +103,69 @@ int main(int argc, char * argv[])
   optAlg.optimization(1e-5, 100);//优化
   MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
   auto end = MPI_Wtime();
-  auto runtime = end - start;
 
   mq.quality_of_mesh(cellQualityOpt);
 
   // 数据展示 
-  int NAC = 0;
-  MPI_Allreduce(&NC, &NAC, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if(mesh->id() != 0)
   {
     MPI_Send(&NC, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
     MPI_Send(cellQualityInit.data(), NC, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     MPI_Send(cellQualityOpt.data(), NC, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+    MPI_Send(mesh->cell_global_id().data(), NC, MPI_INT, 0, 3, MPI_COMM_WORLD);
   }
   if(mesh->id() == 0)
   {
-    int ND[nprocs], AND[nprocs];
-    ND[0] = NC, AND[0] = NC;
+    int NAC = NC;
+    int ND[nprocs];
+    ND[0] = NC;
     for(int i = 1; i < nprocs; i++)
     {
       MPI_Recv(&ND[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      AND[i] = AND[i-1]+ND[i];
+      NAC += ND[i];
     }
-    std::vector<double> initdata(AND[nprocs-1]); 
-    std::vector<double> optdata(AND[nprocs-1]); 
-    for(int i = 0; i < NC; i++)
+    std::vector<double> initdata(NAC); 
+    std::vector<double> optdata(NAC); 
+
+    NAC = 0;
+    for(int i = 0; i < nprocs; i++)
     {
-      initdata[i] = cellQualityInit[i];
-      optdata[i] = cellQualityOpt[i];
+      std::vector<int> cgid(ND[i]);
+      std::vector<double> init_i(ND[i]);
+      std::vector<double> opt_i(ND[i]);
+      if(i == 0)
+      {
+        cgid = mesh->cell_global_id();
+        init_i = cellQualityInit;
+        opt_i = cellQualityOpt;
+      }
+      else
+      {
+        MPI_Recv(init_i.data(), ND[i], MPI_INT, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(opt_i.data(), ND[i], MPI_INT, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(cgid.data(), ND[i], MPI_INT, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+      
+      for(int j = 0; j < ND[i]; j++)
+      {
+        initdata[cgid[j]] = init_i[j];
+        optdata[cgid[j]] = opt_i[j];
+      }
+
+      int N_i = *std::max_element(cgid.begin(), cgid.end());
+      NAC = NAC>N_i?NAC:N_i;
     }
+    initdata.resize(NAC);
+    optdata.resize(NAC);
 
-    for(int i = 1; i < nprocs; i++)
-    {
-      MPI_Recv(initdata.data()+AND[i-1], ND[i], MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(optdata.data()+AND[i-1], ND[i], MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+    double i_min_q = * std::min_element(initdata.begin(), initdata.end());
+    double i_max_q = * std::max_element(initdata.begin(), initdata.end());
+    double i_ave_q = std::accumulate(initdata.begin(), initdata.end(), 0)/NAC;
+    double o_min_q = * std::min_element(optdata.begin(), optdata.end());
+    double o_max_q = * std::max_element(optdata.begin(), optdata.end());
+    double o_ave_q = std::accumulate(optdata.begin(), optdata.end(), 0)/NAC;
 
-    double i_min_q = 100000000.0;
-    double i_max_q = 0.0;
-    double i_ave_q = 0.0;
-    double o_min_q = 100000000.0;
-    double o_max_q = 0.0;
-    double o_ave_q = 0.0;
-
-    for(int i = 0; i < NC; i++)
-    {
-      i_min_q = i_min_q>cellQualityInit[i]? cellQualityInit[i]:i_min_q;
-      i_max_q = i_max_q>cellQualityInit[i]? i_max_q:cellQualityInit[i];
-      i_ave_q += cellQualityInit[i]/NC;
-
-      o_min_q = o_min_q>cellQualityOpt[i]? cellQualityOpt[i]:o_min_q;
-      o_max_q = o_max_q>cellQualityOpt[i]? o_max_q:cellQualityOpt[i];
-      o_ave_q += cellQualityOpt[i]/NC;
-    }
-    std::cout<< "总运行时间:" << runtime << std::endl;
+    std::cout<< "总运行时间:" << end-start << std::endl;
     std::cout<< "初始网格单元最差质量为: " << i_max_q <<std::endl; 
     std::cout<< "初始网格单元最优质量为: " << i_min_q <<std::endl; 
     std::cout<< "初始网格单元平均质量为: " << i_ave_q <<std::endl; 
@@ -167,8 +176,8 @@ int main(int argc, char * argv[])
     std::ofstream wfile;
     wfile.open("tri_test.txt", ios::app);
     wfile<< argv[1] << "\n\n";
-    wfile<< "总运行时间为: " << runtime << "\n";
-    wfile<< "单元数目为: " << NC << "\n";
+    wfile<< "总运行时间为: " << end-start << "\n";
+    wfile<< "单元数目为: " << NAC << "\n";
     wfile<< "进程数为: " << nprocs << "\n";
     wfile<< "\n";
     wfile<< "初始网格单元最差质量为: " << i_max_q << "\n";

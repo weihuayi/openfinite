@@ -130,7 +130,7 @@ inline typename TMesh::Vector TetRadiusRatioQuality<TMesh>::gradient(int c, int 
   auto nabla_s = (cross(c12, v1-v2)/S12 + cross(c23, v2-v3)/S23 + cross(c31, v3-v1)/S31)/4.0;
   auto nabla_V = (c12 + c23 + c31)/6.0;
 
-  auto v = Q*(nabla_Ld/Ld + nabla_s/S - 2.0*nabla_V/V);
+  auto v = -Q*(nabla_Ld/Ld + nabla_s/S - 2.0*nabla_V/V);
   return v;
 }
 
