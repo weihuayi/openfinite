@@ -9,6 +9,7 @@
 #include <numeric>
 #include <time.h>
 #include <functional>
+#include <iostream>
 
 namespace OF {
 namespace Mesh {
@@ -29,10 +30,14 @@ public:
   template<typename ObjectFunction>
   double optimization(ObjectFunction & objfun, double alpha)
   {
+    std::cout<< "node[44] = " << m_mesh->node(44) <<std::endl;
     int i = objfun.get_patch()->id();
     auto & node = m_mesh->node(i);
+    std::cout<< "node = " << node[0] << " " << node[1] << " " << node[2] <<std::endl;
     auto v = objfun.direction();
+    std::cout<< "v per0 = " << v[0] << " " << v[1] << " " << v[2] <<std::endl;
     preprocess(i, node, v);
+    std::cout<< "v per1 = " << v[0] << " " << v[1] << " " << v[2] <<std::endl;
     if(alpha>0)
       v = 2*alpha*v/std::sqrt(v.squared_length());
 

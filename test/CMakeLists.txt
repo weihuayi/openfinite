@@ -8,11 +8,14 @@ add_test(Mesh test_TriangleMesh)
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(FemSpace test_ScaledMonomialSpace2d)
 
-add_executable(test_Dof test_Dof.cpp)
-add_test(FemSpace test_Dof)
-
 add_executable(test_Multindex test_Multindex.cpp)
 add_test(Common test_Multindex)
+
+add_executable(test_Permutation test_Permutation.cpp)
+add_test(Common test_Permutation)
+
+add_executable(test_IncreaseSeq test_IncreaseSeq.cpp)
+add_test(Common test_IncreaseSeq)
 
 add_executable(test_InitTop test_InitTop.cpp)
 add_test(InitTop test_InitTop)
@@ -64,6 +67,21 @@ if(${VTK_FOUND})
         TARGETS test_HexMesh 
         MODULES ${VTK_LIBRARIES}
     )
+    add_executable(test_Dof test_Dof.cpp)
+    add_test(FemSpace test_Dof)
+    target_link_libraries(test_Dof PRIVATE ${VTK_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS test_HexMesh 
+        MODULES ${VTK_LIBRARIES}
+    )
+    add_executable(test_hexmesh_quality test_hexmesh_quality.cpp)
+    add_test(MeshQuality test_hexmesh_quality)
+    target_link_libraries(test_hexmesh_quality PRIVATE ${VTK_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS test_HexMesh 
+        MODULES ${VTK_LIBRARIES}
+    )
+
 
 endif()
 

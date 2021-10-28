@@ -55,7 +55,7 @@ inline double HexPositiveJacobiQuality<Mesh>::quality(int i)
   auto & node = mesh->nodes();
   auto & index = mesh->m_num;
 
-  double flag = 0;
+  int flag = 0;
   double q = 0.0;
   for(auto & idx : index)
   {

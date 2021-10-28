@@ -69,7 +69,6 @@ public:
         int i = 0;
         for(auto it=mesh.node_begin(); it != mesh.node_end(); it++) 
         {
-          std::cout << (*it)[0] << ", " << (*it)[1] << ", " << (*it)[2] << std::endl;
           points->InsertNextPoint((*it)[0], (*it)[1], (*it)[2]); // (*it) 括号是必须的
           i++;
         }

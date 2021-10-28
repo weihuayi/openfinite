@@ -172,7 +172,11 @@ struct Matrix
     ~Matrix()
     {
         if(data != NULL)
-            delete [] data;
+        {
+          for(int i = 0; i < shape[0]; i++)
+            delete [] data[i];
+          delete [] data;
+        }
     }
 
     F & operator() (const I i, const I j)

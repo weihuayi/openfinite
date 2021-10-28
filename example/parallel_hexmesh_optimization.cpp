@@ -85,6 +85,15 @@ void plot(std::vector<I> & data0, std::vector<I> & data1)
 int main(int argc, char * argv[])
 {
   MPI_Init(&argc, &argv);
+  /*
+  volatile int i = 0;
+  char hostname[256];
+  gethostname(hostname, sizeof(hostname));
+  printf("PID %d on %s ready for attach\n", getpid(), hostname);
+  fflush(stdout);
+  while (0 == i)
+      sleep(5);
+  */
 
   int rank, nprocs;
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -101,24 +110,49 @@ int main(int argc, char * argv[])
 
   CellQuality mq(mesh);
   mq.quality_of_mesh(cellQualityInit);
-  for(auto i : cellQualityInit)
-  {
-    std::cout<< i <<std::endl;
-  }
 
   PMeshOpt optAlg(mesh, quad, MPI_COMM_WORLD);
-  clock_t S = clock();
-  optAlg.optimization(1e-4, 100);//优化
-  clock_t E = clock();
-  double runtime = double (E-S)/CLOCKS_PER_SEC;
+
+  MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
+  auto start = MPI_Wtime();
+  optAlg.optimization(1e-5, 100);//优化
+  MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
+  auto end = MPI_Wtime();
 
   mq.quality_of_mesh(cellQualityOpt);
 
+  // 数据展示 
   int NAC = 0;
   MPI_Allreduce(&NC, &NAC, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if(mesh->id() != 0)
+  {
+    MPI_Send(&NC, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(cellQualityInit.data(), NC, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+    MPI_Send(cellQualityOpt.data(), NC, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+  }
   if(mesh->id() == 0)
   {
-    //plot(cellQualityInit, cellQualityOpt);
+    int ND[nprocs], AND[nprocs];
+    ND[0] = NC, AND[0] = NC;
+    for(int i = 1; i < nprocs; i++)
+    {
+      MPI_Recv(&ND[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      AND[i] = AND[i-1]+ND[i];
+    }
+    std::vector<double> initdata(AND[nprocs-1]); 
+    std::vector<double> optdata(AND[nprocs-1]); 
+    for(int i = 0; i < NC; i++)
+    {
+      initdata[i] = cellQualityInit[i];
+      optdata[i] = cellQualityOpt[i];
+    }
+
+    for(int i = 1; i < nprocs; i++)
+    {
+      MPI_Recv(initdata.data()+AND[i-1], ND[i], MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(optdata.data()+AND[i-1], ND[i], MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
     double i_min_q = 100000000.0;
     double i_max_q = 0.0;
     double i_ave_q = 0.0;
@@ -136,7 +170,7 @@ int main(int argc, char * argv[])
       o_max_q = o_max_q>cellQualityOpt[i]? o_max_q:cellQualityOpt[i];
       o_ave_q += cellQualityOpt[i]/NC;
     }
-    std::cout<< "总运行时间:" << runtime << std::endl;
+    std::cout<< "总运行时间:" << end-start << std::endl;
     std::cout<< "初始网格单元最差质量为: " << i_max_q <<std::endl; 
     std::cout<< "初始网格单元最优质量为: " << i_min_q <<std::endl; 
     std::cout<< "初始网格单元平均质量为: " << i_ave_q <<std::endl; 
@@ -147,8 +181,8 @@ int main(int argc, char * argv[])
     std::ofstream wfile;
     wfile.open("hex_test.txt", ios::app);
     wfile<< argv[1] << "\n\n";
-    wfile<< "总运行时间为: " << runtime << "\n";
-    wfile<< "单元数目为: " << NAC << "\n";
+    wfile<< "总运行时间为: " << end-start << "\n";
+    wfile<< "单元数目为: " << NC << "\n";
     wfile<< "进程数为: " << nprocs << "\n";
     wfile<< "\n";
     wfile<< "初始网格单元最差质量为: " << i_max_q << "\n";
@@ -160,28 +194,27 @@ int main(int argc, char * argv[])
     wfile<< "优化网格单元平均质量为: " << o_ave_q << "\n";
     wfile<< "\n\n\n\n";
     wfile.close();
+    //plot(cellQualityInit, cellQualityOpt);
   }
-
   std::stringstream ss;
   ss << "opt_"<< mesh->id() << ".vtu";
+  std::vector<int> qInit(NC);                                                   
+  std::vector<int> qOpt(NC);                                                    
+  for(int i = 0; i < NC; i++)                                                   
+  {                                                                             
+    qInit[i] = (int)(cellQualityInit[i]*1000);                                  
+    qOpt[i] = (int)(cellQualityOpt[i]*1000);                                    
+  }                                                                             
 
-
-  std::vector<int> qInit(NC);
-  std::vector<int> qOpt(NC);
-  for(int i = 0; i < NC; i++)
-  {
-    qInit[i] = (int)(cellQualityInit[i]*1000);
-    qOpt[i] = (int)(cellQualityOpt[i]*1000);
-  }
-
-  Writer writer;
-  writer.set_points(*mesh);
-  writer.set_cells(*mesh);
-  writer.set_point_data(mesh->get_node_int_data()["nid"], 1, "nid");
-  writer.set_cell_data(qOpt, 1, "q_opt");
-  writer.set_cell_data(qInit, 1, "q_init");
-  writer.write(ss.str());
-
+  Writer writer;                                                                
+  writer.set_points(*mesh);                                                     
+  writer.set_cells(*mesh);                                                      
+  writer.set_point_data(mesh->get_node_int_data()["nid"], 1, "nid");            
+  writer.set_cell_data(qOpt, 1, "q_opt");                                       
+  writer.set_cell_data(qInit, 1, "q_init");                                     
+  writer.set_cell_data(cellQualityOpt, 1, "opt");                               
+  writer.set_cell_data(cellQualityInit, 1, "init");                             
+  writer.write(ss.str());                        
   MPI_Finalize();
   return 0;
 }
