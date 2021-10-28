@@ -141,8 +141,8 @@ int main(int argc, char * argv[])
       }
       else
       {
-        MPI_Recv(init_i.data(), ND[i], MPI_INT, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(opt_i.data(), ND[i], MPI_INT, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(init_i.data(), ND[i], MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(opt_i.data(), ND[i], MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(cgid.data(), ND[i], MPI_INT, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       

@@ -333,7 +333,7 @@ public:
       for(auto i: idx)
       {
         submeshes[i].cells().push_back(cell); // 将 cell 放到其所在网格
-	cgid[i].push_back(c);
+        cgid[i].push_back(c);
       }
     }
 
@@ -402,10 +402,10 @@ public:
         writer.set_points(submeshes[i]);
         writer.set_cells(submeshes[i]);
         writer.set_point_data(nids, 1, "nid");
-        writer.set_point_data(cgid[i], 1, "cgid");
         writer.set_point_data(gdof, 1, "gdof");
         writer.set_point_data(gtag, 1, "gtag");
         writer.set_point_data(gid, 1, "gid");
+        writer.set_cell_data(cgid[i], 1, "cgid");
         writer.write(ss.str());
       }
     }

@@ -37,7 +37,7 @@ public:
     reader.read(ss.str());
 
     auto & cgid = m_pmesh->cell_global_id();
-    reader.get_node_data("cgid", cgid);
+    reader.get_cell_data("cgid", cgid);
 
     auto & gid = m_pmesh->node_global_id();
     reader.get_node_data("gid", gid);
