@@ -67,7 +67,6 @@ public:
             ObjectFunction objfun(m_mesh, &patch);
 
             ds[i] = m_node_patch_opt_alg->optimization(objfun, ds[i]);//优化节点
-            std::cout<< "i = " << i << "ds = " << ds[i] <<std::endl; 
           }
         }
         m_set_ghost_alg->fill(m_mesh->nodes(), GD); //通信重叠区节点位置
