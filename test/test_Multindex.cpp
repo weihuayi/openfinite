@@ -13,6 +13,7 @@ void test_C()
   ASSERT_THROW(C(5, 2)==10);
   ASSERT_THROW(C(5, 3)==10);
   ASSERT_THROW(C(6, 2)==15);
+  ASSERT_THROW(C(6, -1)==0);
 }
 
 void test_mutindex()

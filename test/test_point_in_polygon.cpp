@@ -29,10 +29,10 @@ int main(int argc, char * argv[])
   vertices[3] = Node{0.0,1.0};
   
   int n = 4;
-  int wn1 = GK::wn_PnPoly(p1,vertices,n);
-  int cn1 = GK::cn_PnPoly(p1,vertices,n);
-  int wn2 = GK::wn_PnPoly(p2,vertices,n);
-  int cn2 = GK::cn_PnPoly(p2,vertices,n);
+  int wn1 = GK::bounded_side_2_wn(p1,vertices,n);
+  int cn1 = GK::bounded_side_2_cn(p1,vertices,n);
+  int wn2 = GK::bounded_side_2_wn(p2,vertices,n);
+  int cn2 = GK::bounded_side_2_cn(p2,vertices,n);
   std::cout << wn1 << std::endl;
   std::cout << cn1 << std::endl;
   std::cout << wn2 << std::endl;

@@ -3,7 +3,7 @@
  * \file Multindex.h
  * \author ccy
  * \date 2021/10/04
- * \brief Lagrange 有限元空间自由度管理
+ * \brief 多重指标
  */
 #ifndef Multindex_h
 #define Multindex_h
@@ -13,16 +13,7 @@
 #include <array>
 #include <vector>
 
-/**
- *\brief 计算组合数 C_n^m  = n*(n-1)*...*(n-m+1)/m!
- */
-int C(int n, int m)
-{
-  double a = 1;
-  for(int i = 0; i < m; i++)
-    a *= (double)(n-i)/(i+1);
-  return (int)a;
-}
+#include "Function.h"
 
 namespace OF{
 namespace Common{
@@ -53,7 +44,7 @@ public:
    */
   MultiIndex(int p, int l): m_data(NULL), m_len(l)
   {
-    m_data = new int [l]{0};
+    m_data = new int [l]();
     m_data[0] = p;
   }
 
@@ -63,15 +54,16 @@ public:
    */
   MultiIndex(std::initializer_list<int> list):m_data(NULL), m_len(list.size())
   {
-    m_data = new int [m_len]{0};
+    m_data = new int [m_len]();
     int i = 0;
     for(int val : list)
       m_data[i++] = val;
   }
 
+  /** \brief 复制构造函数 */
   MultiIndex(const MultiIndex & mu):m_len(mu.size())
   {
-    m_data = new int [m_len]{0};
+    m_data = new int [m_len]();
     for(int i = 0; i < m_len; i++)
       m_data[i] = mu[i];
   }
@@ -136,6 +128,12 @@ public:
     return re;
   }
 
+  bool nex_multi_index()
+  {
+    MultiIndex copy_idx(*this);
+    return copy_idx.nex_multi_index(*this);
+  }
+
   /** \brief 计算阶数 */
   int order()
   {
@@ -169,14 +167,15 @@ public:
   /**
    * \brief 计算 m_data[index] 是第几个排列 如: 
    */
-  int to_number(int * index)
+  template<typename Arr>
+  int to_number(const Arr & index)
   {
     int num = 0, l = m_len;
     int ord = order();
     for(int i = 0; i < l-1; i++)
     {
-        ord -= m_data[index[i]];
-        num += C(l-i-2+ord, l-i-1);
+      ord -= m_data[index[i]];
+      num += C(l-i-2+ord, l-i-1);
     }
     return num;
   }
@@ -186,7 +185,7 @@ public:
     return m_data;
   }
   
-  const int & size() const
+  const int & size()const
   {
     return m_len;
   }

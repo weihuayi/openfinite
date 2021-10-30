@@ -219,12 +219,12 @@ public:
       for(int i=0;i<n;i++){
         if(v[i][1]<=p[1]){
           if(v[i+1][1]>p[1])
-            if(isLeft(v[i],v[i+1],p)>0)
+            if(is_left(v[i],v[i+1],p)>0)
               ++wn;
           }
         else {
           if(v[i+1][1]<=p[1])
-            if(isLeft(v[i],v[i+1],p)<0)
+            if(is_left(v[i],v[i+1],p)<0)
               --wn;
         }
     }

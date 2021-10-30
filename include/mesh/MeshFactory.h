@@ -317,10 +317,13 @@ public:
     idx_t nn = mesh->number_of_nodes();
     auto & cells = mesh->cells();
     auto & nodes = mesh->nodes();
+    int NC = mesh->number_of_cells();
 
     //将 cell 分到每个 mesh
-    for(auto & cell : cells)
+    std::vector<int> cgid[nparts];/**< 每个网格每个单元的全局编号 */
+    for(int c = 0; c < NC; c++)
     {
+      const auto & cell = cells[c];
       std::set<int> idx; // 存放 cell 都在哪个网格中
       for(auto i: cell)
       {
@@ -330,6 +333,7 @@ public:
       for(auto i: idx)
       {
         submeshes[i].cells().push_back(cell); // 将 cell 放到其所在网格
+        cgid[i].push_back(c);
       }
     }
 
@@ -401,6 +405,7 @@ public:
         writer.set_point_data(gdof, 1, "gdof");
         writer.set_point_data(gtag, 1, "gtag");
         writer.set_point_data(gid, 1, "gid");
+        writer.set_cell_data(cgid[i], 1, "cgid");
         writer.write(ss.str());
       }
     }

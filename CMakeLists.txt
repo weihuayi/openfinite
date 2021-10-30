@@ -11,8 +11,11 @@ set(OpenFinite_VERSION_PATCH 1)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 message(STATUS "${PROJECT_SOURCE_DIR}")
 
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+
+#set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2") 
 
 # C++ 中调要用科学计算的模块，要在系统中安装下面的 python 包
 # sudo apt install python3
@@ -23,6 +26,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(PythonLibs 3)
 message(STATUS "${PYTHON_INCLUDE_DIRS}")
+message(STATUS "${CMAKE_CXX_COMPILER}")
 
 # sudo apt install freeglut3-dev
 find_package(OpenGL COMPONENTS OpenGL)
