@@ -38,14 +38,18 @@ public:
     //std::cout<< "v per0 = " << v[0] << " " << v[1] << " " << v[2] <<std::endl;
     preprocess(i, node, v);
     //std::cout<< "v per1 = " << v[0] << " " << v[1] << " " << v[2] <<std::endl;
-    if(alpha>0)
-      v = 2*alpha*v/std::sqrt(v.squared_length());
+    if(v.squared_length()>1e-10)
+    {
+      if(alpha>0)
+        v = 2*alpha*v/std::sqrt(v.squared_length());
+      alpha = computer_step(objfun, node, v);
 
-    alpha = computer_step(objfun, node, v);
-
-    node = node + alpha*v;
-    proprocess(i, node);
-    return alpha*std::sqrt(v.squared_length()); 
+      node = node + alpha*v;
+      proprocess(i, node);
+      return alpha*std::sqrt(v.squared_length()); 
+    }
+    else
+      return 0;
   }
 
   void preprocess(int i, const Node & node, Vector & v)
