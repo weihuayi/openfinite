@@ -1,12 +1,12 @@
-#ifndef Cell_type_h
-#define Cell_type_h
+#ifndef CellType_h
+#define CellType_h
 
 namespace OF {
 
 namespace Mesh {
 
 // 这里的定义来自VTK
-enum Cell_type 
+enum CellType 
 {
   // Linear cells
   EMPTY_CELL       = 0,
@@ -83,10 +83,10 @@ enum Cell_type
   LAGRANGE_POLYGON         = 75,
   LAGRANGE_POLYHEDRON      = 76,
 
-  NUMBER_OpenFinite_CELL_TYPES
+  NUMBER_OF_CELL_TYPES
 };
 
 } // end of namespace Mesh
 
 } // end of namespace OF
-#endif // end of Cell_type_h
+#endif // end of CellType_h
