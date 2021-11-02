@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
 
   MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
   auto start = MPI_Wtime();
-  optAlg.optimization(1e-5, 50);//优化
+  optAlg.optimization(1e-5, 100);//优化
   MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
   auto end = MPI_Wtime();
 
