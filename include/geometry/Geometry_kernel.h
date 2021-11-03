@@ -3,6 +3,7 @@
 
 #include <cstddef>
 
+#include "enum.h"
 #include "Point_2.h"
 #include "Vector_2.h"
 #include "Point_3.h"
@@ -14,7 +15,9 @@
 #include "Level_set_function.h"
 #include "Bisection_alg.h"
 
+
 namespace OF {
+
 
 template<typename F=double, typename I=int>
 class Geometry_kernel_base
@@ -161,6 +164,71 @@ public:
     static I sign(F val)
     {
         return (F(0) < val) - (val < F(0));
+    }
+
+    /**
+     * \brief 判断某点是在直线的左边还是右边
+     *
+     * \param[in]
+     * \param[out]
+     * \return
+     *
+     * \note
+     *
+     */
+    static inline float is_left(const Point_2 & p0,const Point_2 & p1, const Point_2 p2)
+    {
+      return ((p1[0]-p0[0])*(p2[1]-p0[1]) - (p2[0]-p0[0])*(p1[1]-p0[1]));
+    }
+
+    /**
+     * \brief
+     *
+     */
+
+    static int bounded_side_2_cn(const Point_2 & p,const std::vector<Point_2> & v, int n)
+    {
+      //cross number方法
+      //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
+      //n:多边形的顶点数
+      //return=0在多边形外，return=1在多边形内
+      int cn = 0;
+      
+      //对多边形的所有边进行循环
+      for (int i=0; i<n;i++)
+      {
+        if(((v[i][1]<=p[1]) && (v[i+1][1]>p[1]))
+          ||((v[i][1]>p[1]) && (v[i+1][1]<=p[1]))){
+            //利用相似三角形原理，计算射线与多边形边的相交点的x坐标
+            float vt = (float)(p[1]-v[i][1])/(v[i+1][1]-v[i][1]);
+            if(p[0]<v[i][0]+vt*(v[i+1][0]-v[i][0]))
+              ++cn;
+          }
+      }
+      return (cn&1);
+    }
+
+    static int bounded_side_2_wn(const Point_2 & p,const std::vector<Point_2> & v,int n)
+    {
+      // winding number 方法
+      //p:要判断位置的点;v:点数组，按顺时针或逆时针方向储存多边形的所有顶点
+      //n:多边形的顶点数
+      //return=0在多边形外，大于0在多边形内
+     
+      int wn = 0;
+      for(int i=0;i<n;i++){
+        if(v[i][1]<=p[1]){
+          if(v[i+1][1]>p[1])
+            if(is_left(v[i],v[i+1],p)>0)
+              ++wn;
+          }
+        else {
+          if(v[i+1][1]<=p[1])
+            if(is_left(v[i],v[i+1],p)<0)
+              --wn;
+        }
+    }
+      return wn;
     }
 
 };

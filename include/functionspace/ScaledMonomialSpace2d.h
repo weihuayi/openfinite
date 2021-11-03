@@ -22,7 +22,7 @@ public:
 
   int number_of_local_dofs(int p = -1)
   {
-    if(p < -1)
+    if(p < 0)
       p = m_p;
     return (p+1)*(p+2)/2;
   }
@@ -74,7 +74,7 @@ public:
 
 public:
   ScaledMonomialSpace2d(std::shared_ptr<Mesh> mesh, int p): 
-    m_mesh(mesh), m_p(p), m_integrator(mesh, p+1)
+    m_mesh(mesh), m_p(p), m_integrator(mesh, p+3)
   {
     m_dof = std::make_shared<SMDof>(mesh, p); /**< \todo 为什么放在初始化里不行 */
     mesh->cell_barycenter(m_cellbarycenter);
@@ -112,9 +112,12 @@ public:
     }
   }
 
-  void grad_basis(int cidx, const Node & point, std::vector<Vector> & nphi)
+  void grad_basis(int cidx, const Node & point, std::vector<Vector> & nphi, int p=-1)
   {
-    int ldof = m_dof->number_of_local_dofs();
+    if(p < 0)
+      p = m_p;
+
+    int ldof = m_dof->number_of_local_dofs(p);
     nphi.resize(ldof);
 
     const auto & cellbar = m_cellbarycenter[cidx];
@@ -126,10 +129,10 @@ public:
 
     nphi[0][0] = 0.0;
     nphi[0][1] = 0.0; // 0 次基函数的偏导
-    if(m_p>0)
+    if(p>0)
     {
       int start = 1; // 第 0 个 j 次基函数的编号
-      for(int j = 1; j < m_p+1; j++)
+      for(int j = 1; j < p+1; j++)
       {
         nphi[start][1] = 0.0; // phi[-1]
         for(int k = start; k < start+j; k++)
@@ -184,6 +187,12 @@ public:
       lphi[j] /= area;
   }
 
+  /**
+   * \brief 边上的基函数: 1, x, x**2, x**3, ..., x**{n-1}
+   * \param eidx 边的编号
+   * \param point 节点笛卡尔坐标
+   * \param phi 返回值
+   */
   void edge_basis(int eidx, const Node & point, std::vector<double> & phi)
   {
     int ldof = m_p+1;
@@ -203,14 +212,17 @@ public:
    * \brief 空间的质量矩阵
    * \todo 将 mass 改为稀疏矩阵
    */
-  void mass_matrix(int i, Matrix & mass)
+  void mass_matrix(int i, Matrix & mass, int p = -1)
   {
-    auto ldof = m_dof->number_of_local_dofs();
-    std::function<void(const Node&, Matrix&)> phi_jk = [this, i]
-      (const Node & p, Matrix & m)->void
+    if(p < 0)
+      p = m_p;
+
+    auto ldof = m_dof->number_of_local_dofs(p);
+    std::function<void(const Node&, Matrix&)> phi_jk = [this, &i, &p]
+      (const Node & point, Matrix & m)->void
     {
       std::vector<F> val;
-      basis(i, p, val);
+      basis(i, point, val, p);
       int N = val.size();
       m.reshape(N, N);
       for(int j = 0; j < N; j++)
@@ -263,10 +275,10 @@ public:
     for(int i = 0; i < NC; i++)
     {
       std::function<void(const Node&, Matrix&)> phi_jk = [this, i]
-        (const Node & p, Matrix & m)->void
+        (const Node & point, Matrix & m)->void
       {
         std::vector<Vector> val;
-        this->grad_basis(i, p, val);
+        this->grad_basis(i, point, val);
         int N = val.size();
         m.reshape(N, N);
         for(int j = 0; j < N; j++)

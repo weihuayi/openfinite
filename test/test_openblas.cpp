@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include "cblas.h"
 #include "lapacke.h"
 
@@ -21,6 +22,10 @@ lapack_int matInv(double *A, unsigned n)
                           n,
                           ipiv);
 
+    for(auto c:ipiv)
+    {
+      std::cout<< c <<std::endl;
+    }
     if (ret !=0)
         return ret;
 

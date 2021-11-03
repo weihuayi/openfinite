@@ -720,12 +720,12 @@ private:
 
 template<typename GK, typename NODE, typename VECTOR>
 int TriangleMesh<GK, NODE, VECTOR>::m_localedge[3][2] = {
-    {1, 2}, {2, 0}, {0, 1}
+    {0, 1}, {2, 0}, {1, 2}
 };
 
 template<typename GK, typename NODE, typename VECTOR>
 int TriangleMesh<GK, NODE, VECTOR>::m_localface[3][2] = {
-    {1, 2}, {2, 0}, {0, 1}
+    {0, 1}, {2, 0}, {1, 2}
 };
 
 template<typename GK, typename NODE, typename VECTOR>

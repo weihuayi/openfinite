@@ -161,6 +161,7 @@ void test_basis_on_tri_mesh(int p=1)
   mesh->cell_barycenter(0, center);
   auto h = mesh->cell_size(0);
 
+  std::cout<< "开始测试 smspace basis on trimesh" << std::endl;
   std::vector<double> val;
   space->basis(0, point, val);
   for(unsigned int i = 0; i < val.size(); i++)
@@ -169,6 +170,7 @@ void test_basis_on_tri_mesh(int p=1)
     ASSERT_THROW(s-val[i]<1e-10);
   }
 
+  std::cout<< "开始测试 smspace grad basis on trimesh" << std::endl;
   std::vector<Vector> gval;
   space->grad_basis(0, point, gval);
   for(unsigned int i = 0; i < val.size(); i++)
@@ -178,6 +180,7 @@ void test_basis_on_tri_mesh(int p=1)
     ASSERT_THROW(s[1]-gval[i][1]<1e-10);
   }
 
+  std::cout<< "开始测试 smspace laplace basis on trimesh" << std::endl;
   std::vector<double> lval;
   space->laplace_basis(0, point, lval);
   for(unsigned int i = 0; i < val.size(); i++)
@@ -186,6 +189,7 @@ void test_basis_on_tri_mesh(int p=1)
     ASSERT_THROW(s-lval[i]<1e-10);
   }
 
+  std::cout<< "开始测试 smspace edge basis on trimesh" << std::endl;
   std::vector<double> eval;
   Node point0 = Node({1.5, 1.5});
   space->edge_basis(1, point0, eval);

@@ -146,11 +146,8 @@ public:
     auto w = m_edgeintegrator.quadrature_weight(0);/**< 积分点的权重 */
     auto & qpts = m_edgeintegrator.quadrature_point(0); /**< 获取积分点重心坐标 */
     auto P = qpts[0]*p0 + qpts[1]*p1;
-    std::cout<< mat <<std::endl;
     f(P, mat);
-    std::cout<< mat <<std::endl;
     mat *= w;
-    std::cout<< N <<std::endl;
     for(int j = 1; j < N; j++)
     {
       auto w = m_edgeintegrator.quadrature_weight(j);/**< 积分点的权重 */

@@ -89,10 +89,13 @@ inline typename TMesh::Vector TetRadiusRatioQuality<TMesh>::gradient(int c, int 
 
   //四个顶点, n1, n2, n3 是逆时针
   auto n0 = cell[i];
+  //auto n1 = cell[index[3-i][0]];
+  //auto n2 = cell[index[3-i][1]];
+  //auto n3 = cell[index[3-i][2]];
   auto n1 = cell[index[i][0]];
   auto n2 = cell[index[i][1]];
   auto n3 = cell[index[i][2]];
-
+  
   //除去底面外的三条边的向量
   auto v1 = node[n1] - node[n0];
   auto v2 = node[n2] - node[n0];
@@ -127,12 +130,7 @@ inline typename TMesh::Vector TetRadiusRatioQuality<TMesh>::gradient(int c, int 
   auto nabla_s = (cross(c12, v1-v2)/S12 + cross(c23, v2-v3)/S23 + cross(c31, v3-v1)/S31)/4.0;
   auto nabla_V = (c12 + c23 + c31)/6.0;
 
-  auto w_d = 2*dot(d, c12+c23+c31)/d.squared_length();
-  auto w_s = ((v1-v2).squared_length()/S12 + (v2-v3).squared_length()/S23 + 
-    (v3-v1).squared_length()/S31)/S/4.0;
-
   auto v = -Q*(nabla_Ld/Ld + nabla_s/S - 2.0*nabla_V/V);
-  //w = w_d+w_s;
   return v;
 }
 

@@ -75,6 +75,7 @@ public:
       double l = *std::max_element(ds.begin(), ds.end());
       double g = 0.0;
       MPI_Allreduce(&l, &g, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      std::cout<< "l = " << l <<std::endl;
 
       if((g < tol)||(it>maxit))
       {
