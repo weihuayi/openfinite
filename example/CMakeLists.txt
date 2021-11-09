@@ -14,9 +14,7 @@ if(${VTK_FOUND})
         TARGETS pmesh_generation 
         MODULES ${VTK_LIBRARIES}
     )
-endif()
 
-if(${CGAL_FOUND} AND ${VTK_FOUND})
     add_executable(pmesh_tetmesh_generation pmesh_tetmesh_generation.cpp)
     target_link_libraries(pmesh_tetmesh_generation PRIVATE ${CGAL_LIBRARIES}
         ${VTK_LIBRARIES} ${METIS_LIBRARY})
@@ -33,6 +31,9 @@ if(${CGAL_FOUND} AND ${VTK_FOUND})
         MODULES ${VTK_LIBRARIES}
     )
 endif()
+
+#if(${CGAL_FOUND} AND ${VTK_FOUND})
+#endif()
 
 if(${VTK_FOUND} AND ${MPI_FOUND})
 
@@ -89,6 +90,13 @@ if(${VTK_FOUND} AND ${MPI_FOUND})
     target_link_libraries(parallel_hexmesh_optimization0 PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
     vtk_module_autoinit(
         TARGETS parallel_hexmesh_optimization0 
+        MODULES ${VTK_LIBRARIES}
+    )
+
+    add_executable(parallel_mesh_coloring parallel_mesh_coloring.cpp)
+    target_link_libraries(parallel_mesh_coloring PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS parallel_mesh_coloring 
         MODULES ${VTK_LIBRARIES}
     )
 

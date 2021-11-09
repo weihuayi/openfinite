@@ -468,6 +468,16 @@ public:
     return m_cell2edge[i];
   }
 
+  std::vector<Edge2cell> & edge_to_cell()
+  {
+    return m_edge2cell;
+  }
+
+  std::vector<Cell2edge> & cell_to_edge()
+  {
+    return m_cell2edge;
+  }
+
   NodeIntData & get_node_int_data()
   {
     return m_nodeintdata;
