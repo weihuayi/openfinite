@@ -140,7 +140,7 @@ public:
 
   I vtk_cell_type(int TD=2)
   {
-      if(TD == 2)
+      if(TD == 2) //TODO:
           return 5; // VTK_TRIANGLE
       else if(TD == 1)
           return 3; // VTK_LINE
@@ -676,8 +676,6 @@ private:
   std::vector<Cell> m_cell; 
   std::vector<Edge2cell> m_edge2cell;
   std::vector<Cell2edge> m_cell2edge;
-  NodeIntData m_nodeintdata;
-  NodeDoubleData m_nodedoubledata;
 };
 
 
