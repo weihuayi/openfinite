@@ -5,6 +5,9 @@ configure_file( TestMacro.h.in ${CMAKE_SOURCE_DIR}/test/TestMacro.h)
 add_executable(test_TriangleMesh test_TriangleMesh.cpp)
 add_test(Mesh test_TriangleMesh)
 
+add_executable(test_LagrangeTriangleMesh test_LagrangeTriangleMesh.cpp)
+add_test(Mesh test_LagrangeTriangleMesh)
+
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(FemSpace test_ScaledMonomialSpace2d)
 

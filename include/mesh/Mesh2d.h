@@ -63,15 +63,15 @@ public:
 
   void insert(const Node & node)
   {
-      m_node.push_back(node);
+      m_nodes.push_back(node);
   }
 
   void insert(const Cell & cell)
   {
-      m_cell.push_back(cell);
+      m_cells.push_back(cell);
   }
 
- void init_top()
+  void init_top()
   {
       m_face2cell.clear();
       m_cell2face.clear();
@@ -110,7 +110,7 @@ public:
       m_face.resize(NF);
       for(I i = 0; i < NF; i++)
       {
-          auto & c = m_cell[m_face2cell[i][0]];
+          auto & c = m_cells[m_face2cell[i][0]];
           auto j = m_face2cell[i][2];
           m_face[i][0] = c[m_localface[j][0]];
           m_face[i][1] = c[m_localface[j][1]];
@@ -142,58 +142,58 @@ public:
       }
   }
 
-    void print()
+  void print()
+  {
+    for(I i = 0; i < m_NN; i++)
     {
-        for(I i = 0; i < m_NN; i++)
-        {
-            std::cout<< "point " << i << ":" <<  m_nodes[i] << std::endl;
-        }
-
-        for(I i = 0; i < m_NF; i++)
-        {
-            std::cout<< "face2node " << i << ":";
-            for(int j = 0; j < Cell::NV[2]; j++)
-            {
-                std::cout<<  " " << face(i)[j];
-            }
-            std::cout << std::endl;
-        }
-
-        for(I i = 0; i < m_NE; i++)
-        {
-            std::cout<< "edge2node " << i << ":";
-            for(int j = 0; j < Cell::NV[1]; j++)
-            {
-                std::cout<<  " " << edge(i)[j];
-            }
-            std::cout << std::endl;
-        }
-
-        auto TD = Cell::dimension();
-        for(I i = 0; i < m_NC; i++)
-        {
-            std::cout <<"cell2node "<<  i << ":";
-            for(I j = 0; j < Cell::ND[0]; j++)
-                std::cout <<  " " << m_cells[i].node(j);
-            std::cout << std::endl;
-        }
-
-        for(I i = 0; i < m_NC; i++)
-        {
-            std::cout <<"cell2edge "<<  i << ":";
-            for(I j = 0; j < Cell::ND[1]; j++)
-                std::cout << " " << m_cells[i].edge(j);
-            std::cout << std::endl;
-        }
-
-        for(I i = 0; i < m_NC; i++)
-        {
-            std::cout <<"cell2face "<<  i << ":";
-            for(I j = 0; j < Cell::ND[2]; j++)
-                std::cout << " " << m_cells[i].face(j);
-            std::cout << std::endl;
-        }
+      std::cout<< "point " << i << ":" <<  m_nodes[i] << std::endl;
     }
+
+    for(I i = 0; i < m_NF; i++)
+    {
+      std::cout<< "face2node " << i << ":";
+      for(int j = 0; j < Cell::NV[2]; j++)
+      {
+        std::cout<<  " " << face(i)[j];
+      }
+      std::cout << std::endl;
+    }
+
+    for(I i = 0; i < m_NE; i++)
+    {
+      std::cout<< "edge2node " << i << ":";
+      for(int j = 0; j < Cell::NV[1]; j++)
+      {
+        std::cout<<  " " << edge(i)[j];
+      }
+      std::cout << std::endl;
+    }
+
+    auto TD = Cell::dimension();
+    for(I i = 0; i < m_NC; i++)
+    {
+      std::cout <<"cell2node "<<  i << ":";
+      for(I j = 0; j < Cell::ND[0]; j++)
+        std::cout <<  " " << m_cells[i].node(j);
+      std::cout << std::endl;
+    }
+
+    for(I i = 0; i < m_NC; i++)
+    {
+      std::cout <<"cell2edge "<<  i << ":";
+      for(I j = 0; j < Cell::ND[1]; j++)
+        std::cout << " " << m_cells[i].edge(j);
+      std::cout << std::endl;
+    }
+
+    for(I i = 0; i < m_NC; i++)
+    {
+      std::cout <<"cell2face "<<  i << ":";
+      for(I j = 0; j < Cell::ND[2]; j++)
+        std::cout << " " << m_cells[i].face(j);
+      std::cout << std::endl;
+    }
+  }
 
 
 private:

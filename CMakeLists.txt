@@ -78,6 +78,7 @@ find_library(METIS_LIBRARY metis
   /usr/local/lib
   /usr/lib
 )
+
 if(PARMETIS_INCLUDE_DIR)
   if(PARMETIS_LIBRARY)
     set(PARMETIS_LIBRARIES ${PARMETIS_LIBRARY} ${METIS_LIBRARY})
@@ -115,7 +116,7 @@ else()
 endif()
 
 # OpenBLAS 
-set(OpenBLAS_DIR "~/.local/openblas")
+set(OpenBLAS_DIR $ENV{HOME}/.local/openblas)
 find_package(OpenBLAS)
 if(NOT ${OpenBLAS_FOUND})
     message("OpenOpenBLAS not found")

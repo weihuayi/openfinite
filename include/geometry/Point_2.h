@@ -117,12 +117,21 @@ inline Vector_2<F> operator - (const Point_2<F> & p, const Point_2<F> & q)
     return v;
 }
 
-template<typename F>
-inline Point_2<F> operator * (F w, const Point_2<F> & q)
+template<typename F, typename I>
+inline Point_2<F> operator * (I w, const Point_2<F> & q)
 {
     Point_2<F> p;
     for(int d = 0; d < 2; d++)
         p[d] = w*q[d];
+    return p;
+}
+
+template<typename F, typename I>
+inline Point_2<F> operator / (const Point_2<F> & q, I w)
+{
+    Point_2<F> p;
+    for(int d = 0; d < 2; d++)
+        p[d] = q[d]/w;
     return p;
 }
 
