@@ -51,9 +51,9 @@ public:
 
     Point_2& operator=(const Point_2& p)
     {
-        m_data[0] = p[0];
-        m_data[1] = p[1];
-        return *this;
+      m_data[0] = p[0];
+      m_data[1] = p[1];
+      return *this;
     }
 
     static int size() {return 2;}

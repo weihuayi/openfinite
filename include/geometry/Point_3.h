@@ -99,6 +99,24 @@ public:
         return *this;
     }
 
+    template<typename I>
+    Point_3<F> & operator *= (const I & rhs)
+    {
+        m_data[0] *= rhs;
+        m_data[1] *= rhs;
+        m_data[2] *= rhs;
+        return *this;
+    }
+
+    template<typename I>
+    Point_3<F> & operator /= (const I & rhs)
+    {
+        m_data[0] /= rhs;
+        m_data[1] /= rhs;
+        m_data[2] /= rhs;
+        return *this;
+    }
+
 
 private:
     F m_data[3];
@@ -122,12 +140,21 @@ inline Vector_3<F> operator - (const Point_3<F> & p, const Point_3<F> & q)
     return v;
 }
 
-template<typename F>
-inline Point_3<F> operator * (F w, const Point_3<F> & q)
+template<typename F, typename I>
+inline Point_3<F> operator * (I w, const Point_3<F> & q)
 {
     Point_3<F> p;
     for(int d = 0; d < 3; d++)
         p[d] = w*q[d];
+    return p;
+}
+
+template<typename F, typename I>
+inline Point_3<F> operator / (const Point_3<F> & q, I w)
+{
+    Point_3<F> p;
+    for(int d = 0; d < 3; d++)
+        p[d] = q[d]/w;
     return p;
 }
 
