@@ -433,6 +433,22 @@ public:
     }
   }
 
+  template<class Container0>
+  double det_jacobi(int c, const Container0 & bc)
+  {
+    std::vector<std::array<int, 2>> J; 
+    jacobi_matrix(c, bc, J);
+    double det[3] = {0.0, 0.0, 0.0};
+    for(int k = 0; k < (int)J.size(); k++)
+    {
+      det[0] += J[k][0]*J[k][0];
+      det[1] += J[k][0]*J[k][1];
+      det[2] += J[k][1]*J[k][1];
+    }
+    return std::sqrt(det[0]*det[2] - det[1]*det[1]);
+
+  }
+
   void is_boundary_edge(std::vector<bool> & isBdEdge)
   {
     auto NE = number_of_edges();
@@ -459,7 +475,6 @@ public:
       }
     }
   }
-
 
   void cell_to_cell(Toplogy & top)
   {
@@ -624,7 +639,7 @@ public:
   }
 
   F cell_measure(const I i)
-  {//TODO: 需要考虑 inline 函数吗?
+  {
     auto & c = m_cell[i];
     auto v1 = m_node[c[1]] - m_node[c[0]];
     auto v2 = m_node[c[2]] - m_node[c[0]];

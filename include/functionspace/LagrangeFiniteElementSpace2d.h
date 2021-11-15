@@ -102,24 +102,6 @@ public:
   }
 
   /**
-   * \brief 第 i 个单元的第 j 个自由度的编号
-   */
-  int cell_to_dof(int i, int j)
-  {
-    if(j<3*(m_p+1))
-    {
-      int idx = j/(m_p+1);
-      int eidx = m_mesh->cell_to_edge(i)[idx];
-      return (m_p+1)*eidx+j-idx*(m_p+1);
-    }
-    else
-    {
-      int NE = m_mesh->number_of_edges();
-      return NE*(m_p+1)+i*((m_p+1)*m_p)+j-3*(m_p+1);
-    }
-  }
-
-  /**
    * \brief 第 i 条边的自由度的编号
    */
   std::vector<int> edge_to_dof(int i)
@@ -132,7 +114,7 @@ public:
     e2d[0] = edge[0];
     e2d[m_p] = edge[1];
     for(int j = 0; j < NDE; j++)
-      e2d[j] = NN+i*NDE+j;
+      e2d[j+1] = NN+i*NDE+j;
     return e2d;
   }
 
@@ -146,7 +128,7 @@ public:
     int NDE = number_of_edge_local_dofs();
     int NDC = number_of_cell_local_dofs();
 
-    int ldof = m_mesh->number_of_dofs();
+    int ldof = number_of_local_dofs();
     std::vector<int> c2d(ldof, 0);
 
     const auto & edge = m_mesh->edges();
@@ -155,9 +137,9 @@ public:
 
     int idx[3] = {2, 1, 0}; /**< 网格局部边的编号与递增序列编号的索引 TODO */
     bool eflag[3]; /**< 三条边的方向是否正确 */
-    eflag[0] = edge[c2e[i][idx[0]]][0] == cell[i][0];
-    eflag[1] = edge[c2e[i][idx[1]]][0] == cell[i][0];
-    eflag[2] = edge[c2e[i][idx[2]]][0] == cell[i][1];
+    eflag[0] = edge[c2e[idx[0]]][0] == cell[0];
+    eflag[1] = edge[c2e[idx[1]]][0] == cell[0];
+    eflag[2] = edge[c2e[idx[2]]][0] == cell[1];
 
     for(int j = 0; j < ldof; j++)/**< 循环所有域点 */
     {
@@ -179,6 +161,7 @@ public:
         c2d[j] = NN + NE*NDE + i*NDC + m_dpoint[j][2];
       }
     }
+    return c2d;
   }
 
 private:
@@ -219,26 +202,12 @@ public:
    * \brief 有限元空间构造函数
    * \param mesh 空间的网格
    * \param p 空间次数
-   * \todo m_dof 和 m_space 为什么放在初始化里不行
    * \todo 积分子有两个
    */
   LagrangeFiniteElementSpace2d(std::shared_ptr<Mesh> mesh, int p): 
     m_p(p), m_mesh(mesh), m_integrator(mesh, p+3)
   {
     m_dof = std::make_shared<LFESDof>(mesh, p);
-  }
-
-  /**
-   * \brief 构建基函数的系数 
-   */
-  void build_coeff()
-  {
-    auto NC = m_mesh->number_of_cells();
-    m_coeff.resize(NC);
-    for(int i = 0; i < NC; i++)
-    {
-      basis_coefficients(i, m_coeff[i]);
-    }
   }
 
   template<class Container>
@@ -269,13 +238,13 @@ public:
   }
 
   template<class Container>
-  void nabla_BMatrix(const Container & bc, std::vector<std::array<Vector, 3>> & NB)
+  void nabla_BMatrix(int c, const Container & bc, std::vector<std::array<Vector, 3>> & NB)
   {
     const int p = m_p;
     /** 计算 D^i */
-    std::vector<std::array<double, p>> D0(p);
-    std::vector<std::array<double, p>> D1(p);
-    std::vector<std::array<double, p>> D2(p);
+    Matrix D0(p, p);
+    Matrix D1(p, p);
+    Matrix D2(p, p);
     for(int i = 0; i < p; i++)/**< 赋值 */
     {
       for(int j = 0; j < p; j++)
@@ -318,12 +287,14 @@ public:
     v[1] = Vector_2{1.0, 0.0};
     v[2] = Vector_2{0.0, 1.0};
     std::vector<std::array<int, 2>> J; 
-    m_mesh->jacobi_matrix(bc, J);
-    for(int i = 0; i < 3; i++)
+    m_mesh->jacobi_matrix(c, bc, J);
+    if(m_mesh->geo_dimension()==2)
     {
-      for(int j = 0; j < m_mesh->geo_dimension(); j++)
+      double det_J = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+      for(int i = 0; i < 3; i++)
       {
-        GLambda[i][j] = J[j][0] * v[i][0] + J[j][1] * v[i][1];
+        GLambda[i][0] = (J[1][1] * v[i][0] - J[1][0] * v[i][1])/det_J;
+        GLambda[i][1] = (-J[0][1] * v[i][0] + J[0][0] * v[i][1])/det_J;
       }
     }
 
@@ -343,7 +314,7 @@ public:
    * 前三个形函数是重心坐标函数其数值就是 bc[0], bc[1], bc[2].
    */
   template<class Container>
-  void basis(const Container & bc, std::vector<double> & val)
+  void basis(int i, const Container & bc, std::vector<double> & val)
   {
     const int p = m_p;
     int ldof = m_dof->number_of_local_dofs();
@@ -366,7 +337,7 @@ public:
    * 前三个形函数是重心坐标函数其数值就是 bc[0], bc[1], bc[2].
    */
   template<class Container>
-  void grad_basis(const Container & bc, std::vector<Vector_2> & val)
+  void grad_basis(int c, const Container & bc, std::vector<Vector> & val)
   {
     const int p = m_p;
     /** 计算 B */
@@ -374,8 +345,8 @@ public:
     BMatrix(bc, B);
 
     /** 计算 \nabla B */
-    std::vector<std::array<Vector_2, 3>> NB(p+1);
-    nabla_BMatrix(bc, NB);
+    std::vector<std::array<Vector, 3>> NB(p+1);
+    nabla_BMatrix(c, bc, NB);
 
     /** 计算基函数梯度值 val */
     MultiIndex midx(p, 3);
@@ -394,48 +365,42 @@ public:
    * \param cidx 单元编号
    * \param mass 返回的质量矩阵
    */
-  void _mass_matrix(int cidx, Matrix & mass)
-  {
-    Matrix smMass;
-
-    auto ldof = m_dof->number_of_local_dofs();
-    mass.reshape(ldof, ldof);
-    int smdof = (m_p+1)*(m_p+2)/2;
-    auto eldof = m_dof->number_of_edge_local_dofs();
-    for(int i = 0; i < smdof; i++)
-    {
-      for(int j = 0; j < smdof; j++)
-      {
-        mass[i][j] = smMass[i][j];
-        mass[i+smdof][j+smdof] = smMass[i][j];
-      }
-      for(int j = 0; j < eldof; j++)
-      {
-        mass[i][j+smdof*2] = smMass[i][smdof+j+1];
-        mass[i+smdof][j+smdof*2] = -smMass[i][smdof+j];
-      }
-    }
-    for(int i = smdof*2; i < ldof; i++)
-    {
-      for(int j = 0; j < smdof*2; j++)
-      {
-        mass[i][j] = mass[j][i];
-      }
-      for(int j = 0; j < eldof; j++)
-      {
-        mass[i][j+smdof*2] = smMass[-smdof+i+1][smdof+j+1]+smMass[-smdof+i][smdof+j];
-      }
-    }
-  }
-
   void mass_matrix(int i, Matrix & mass)
   {
     auto ldof = m_dof->number_of_local_dofs();
-    std::function<void(const Node&, Matrix&)> phi_jk = [this, &i]
-      (const Node & point, Matrix & m)->void
+
+    std::function<void(const std::array<double, 3>&, Matrix&)> phi_jk = [this, &i]
+      (const std::array<double, 3> & bc, Matrix & m)->void
+    {
+      std::vector<double> val;
+      basis(i, bc, val);
+      int N = val.size();
+      m.reshape(N, N);
+      for(int j = 0; j < N; j++)
+      {
+        for(int k = 0; k < N; k++)
+        {
+          m[j][k] = val[j]*val[k];
+        }
+      }
+    };
+    m_integrator.integral(i, phi_jk, mass);
+  }
+
+  /**
+   * \brief 单元上的基函数的刚度矩阵
+   * \param cidx 单元编号
+   * \param mass 返回的刚度矩阵
+   */
+  void stiff_matrix(int i, Matrix & stiff)
+  {
+    auto ldof = m_dof->number_of_local_dofs();
+
+    std::function<void(const std::array<double, 3>&, Matrix&)> phi_jk = [this, &i]
+      (const std::array<double, 3> & bc, Matrix & m)->void
     {
       std::vector<Vector> val;
-      basis(i, point, val);
+      grad_basis(i, bc, val);
       int N = val.size();
       m.reshape(N, N);
       for(int j = 0; j < N; j++)
@@ -446,8 +411,9 @@ public:
         }
       }
     };
-    m_integrator.integral(i, phi_jk, mass);
+    m_integrator.integral(i, phi_jk, stiff);
   }
+
 
   /**
    * \brief 空间的质量矩阵
@@ -467,7 +433,31 @@ public:
       {
         for(int k = 0; k < ldof; k++)
         {
-          mass[celldof[j]][celldof[k]] = mat[j][k];
+          mass[celldof[j]][celldof[k]] += mat[j][k];
+        }
+      }
+    }
+  }
+
+  /**
+   * \brief 空间的刚度矩阵
+   */
+  void stiff_matrix(BSMatrix & stiff)
+  {
+    auto NC = m_mesh->number_of_cells(); 
+    auto ldof = m_dof->number_of_local_dofs();
+    auto gdof = m_dof->number_of_dofs(); 
+    stiff.resize(gdof);
+    for(int i = 0; i < NC; i++)
+    {
+      Matrix mat;
+      stiff_matrix(i, mat);
+      auto celldof = m_dof->cell_to_dof(i); 
+      for(int j = 0; j < ldof; j++)
+      {
+        for(int k = 0; k < ldof; k++)
+        {
+          stiff[celldof[j]][celldof[k]] += mat[j][k];
         }
       }
     }
@@ -476,7 +466,7 @@ public:
   /**
    * \brief 计算右端向量 \f[((f, v_0), (f, v_1), ..., (f, v_{n-1}) \f]
    */
-  void source_vector(std::function<Vector(const Node&)> & f, std::vector<double> & vec)
+  void source_vector(std::function<double(const Node &)> & f, std::vector<double> & vec)
   {
     auto ldof = m_dof->number_of_local_dofs();
     auto gdof = m_dof->number_of_dofs();
@@ -485,17 +475,22 @@ public:
 
     for(int i = 0; i < NC; i++)
     {
-      std::function<void(const Node&, Matrix&)> f_phi_i = [this, &i, f]
-        (const Node & point, Matrix & m)->void
+      std::function<void(const std::array<double, 3>&, Matrix&)> f_phi_i = [this, &i, f]
+        (const std::array<double, 3>  & bc, Matrix & m)->void
       {
-        Vector fval = f(point);
-        std::vector<Vector> pval;
-        basis(i, point, pval);
+        const auto & p0 = m_mesh->node(m_mesh->cell(i)[0]);
+        const auto & p1 = m_mesh->node(m_mesh->cell(i)[1]);
+        const auto & p2 = m_mesh->node(m_mesh->cell(i)[2]);
+        double fval = f(bc[0]*p0 + bc[1]*p1 + bc[2]*p2);
+
+        std::vector<double> pval;
+        basis(i, bc, pval);
+
         int N = pval.size();
         m.reshape(N, 1);
         for(int j = 0; j < N; j++)
         {
-          m[j][0] = dot(fval, pval[j]);
+          m[j][0] = fval*pval[j];
         }
       };
       Matrix mat;
