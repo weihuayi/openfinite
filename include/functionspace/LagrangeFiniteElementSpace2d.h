@@ -18,6 +18,8 @@
 
 #include "algebra/linalg.h"
 #include "common/Multindex.h"
+#include "functionspace/ScaledMonomialSpace2d.h"
+#include "functionspace/FEMFunction.h"
 
 namespace OF {
 namespace FunctionSpace{
@@ -30,7 +32,7 @@ public:
 
   typedef typename OF::Common::MultiIndex MultiIndex;
 public:
-  LFESDof2d(std::shared_ptr<Mesh> mesh, int p): m_mesh(mesh), m_p(p), m_dpoint(0),
+  LFESDof2d(const std::shared_ptr<Mesh> mesh, int p): m_mesh(mesh), m_p(p), m_dpoint(0),
       m_indexs(0)
   {
     get_domain_point();
@@ -108,11 +110,13 @@ public:
   {
     int NDE = number_of_edge_local_dofs();
     int NN = m_mesh->number_of_nodes();
-    const auto & edge = m_mesh->edge(i);
+
+    std::array<int, 2> e2v;
+    m_mesh->edge_to_vertex(i, e2v);
 
     std::vector<int> e2d(m_p+1, 0);
-    e2d[0] = edge[0];
-    e2d[m_p] = edge[1];
+    e2d[0] = e2v[0];
+    e2d[m_p] = e2v[1];
     for(int j = 0; j < NDE; j++)
       e2d[j+1] = NN+i*NDE+j;
     return e2d;
@@ -132,20 +136,22 @@ public:
     std::vector<int> c2d(ldof, 0);
 
     const auto & edge = m_mesh->edges();
-    const auto & cell = m_mesh->cell(i);
+
+    std::array<int, 3> c2v;
+    m_mesh->cell_to_vertex(i, c2v);
     const auto & c2e = m_mesh->cell_to_edge(i);
 
-    int idx[3] = {2, 1, 0}; /**< 网格局部边的编号与递增序列编号的索引 TODO */
+    auto & idx = m_mesh->m_localedgeindex; /**< 网格局部边的编号与递增序列编号的索引 TODO */
     bool eflag[3]; /**< 三条边的方向是否正确 */
-    eflag[0] = edge[c2e[idx[0]]][0] == cell[0];
-    eflag[1] = edge[c2e[idx[1]]][0] == cell[0];
-    eflag[2] = edge[c2e[idx[2]]][0] == cell[1];
+    eflag[0] = edge[c2e[idx[0]]][0] == c2v[0];
+    eflag[1] = edge[c2e[idx[1]]][0] == c2v[0];
+    eflag[2] = edge[c2e[idx[2]]][0] == c2v[1];
 
     for(int j = 0; j < ldof; j++)/**< 循环所有域点 */
     {
       if(m_dpoint[j][0]==0) /**< 0维 域点 */
       {
-        c2d[j] = cell[m_dpoint[j][1]];
+        c2d[j] = c2v[m_dpoint[j][1]];
       }
       else if(m_dpoint[j][0]==1) /**< 1维 域点 */
       {
@@ -162,6 +168,24 @@ public:
       }
     }
     return c2d;
+  }
+
+  void is_boundary_dof(std::vector<bool> & isbdof)
+  {
+    int gdof = number_of_dofs();
+    isbdof.resize(gdof, false);
+    int NE = m_mesh->number_of_edges();
+    for(int i = 0; i < NE; i++)
+    {
+      if(m_mesh->is_boundary_edge(i))
+      {
+        auto e2d = edge_to_dof(i); 
+        for(auto d : e2d)
+        {
+          isbdof[d] = true;
+        }
+      }
+    }
   }
 
 private:
@@ -194,7 +218,8 @@ public:
   typedef typename AK::Matrix Matrix;
   typedef typename std::vector<std::map<I, F> > BSMatrix;
 
-  typedef typename OF::Common::MultiIndex MultiIndex;
+  typedef OF::Common::MultiIndex MultiIndex;
+  typedef FEMFunction<LagrangeFiniteElementSpace2d, double> Function;
 
 public:
 
@@ -286,7 +311,7 @@ public:
     v[0] = Vector_2{-1.0, -1.0};
     v[1] = Vector_2{1.0, 0.0};
     v[2] = Vector_2{0.0, 1.0};
-    std::vector<std::array<int, 2>> J; 
+    std::vector<std::array<double, 2>> J; 
     m_mesh->jacobi_matrix(c, bc, J);
     if(m_mesh->geo_dimension()==2)
     {
@@ -324,7 +349,7 @@ public:
 
     /** 计算基函数值 val */
     MultiIndex midx(p, 3);
-    val.resize(ldof);
+    val.resize(ldof, 0);
     for(int i = 0; i < ldof; i++)
     {
       val[i] = B[midx[0]][0]*B[midx[1]][1]*B[midx[2]][2];
@@ -466,22 +491,22 @@ public:
   /**
    * \brief 计算右端向量 \f[((f, v_0), (f, v_1), ..., (f, v_{n-1}) \f]
    */
-  void source_vector(std::function<double(const Node &)> & f, std::vector<double> & vec)
+  template<typename Container>
+  void source_vector(std::function<double(const Node &)> & f, Container & vec)
   {
     auto ldof = m_dof->number_of_local_dofs();
     auto gdof = m_dof->number_of_dofs();
     auto NC = m_mesh->number_of_cells();
-    vec.resize(gdof, 0);
+    if(vec.size() != gdof)
+      vec.resize(gdof, 0);
 
     for(int i = 0; i < NC; i++)
     {
       std::function<void(const std::array<double, 3>&, Matrix&)> f_phi_i = [this, &i, f]
         (const std::array<double, 3>  & bc, Matrix & m)->void
       {
-        const auto & p0 = m_mesh->node(m_mesh->cell(i)[0]);
-        const auto & p1 = m_mesh->node(m_mesh->cell(i)[1]);
-        const auto & p2 = m_mesh->node(m_mesh->cell(i)[2]);
-        double fval = f(bc[0]*p0 + bc[1]*p1 + bc[2]*p2);
+        auto po = m_mesh->bc_to_point(i, bc);
+        double fval = f(po);
 
         std::vector<double> pval;
         basis(i, bc, pval);
@@ -501,6 +526,59 @@ public:
         vec[c2d[j]] += mat[j][0];
       }
     }
+  }
+
+  Function function()
+  {
+    return Function(this);
+  }
+
+  double L2_error(Function & Fun, std::function<double(const Node &)> & fun)
+  {
+    double val = 0.0;
+    int ldof = m_dof->number_of_local_dofs();
+    int NC = m_mesh->number_of_cells();
+    for(int i = 0; i < NC; i++)
+    {
+      std::function<double(const std::array<double, 3>&)> L2_err = [ldof, this, i, Fun, fun]
+        (const std::array<double, 3>  & bc)->double
+      {
+        auto po = m_mesh->bc_to_point(i, bc);
+        return std::pow(Fun(i, bc)-fun(po), 2);
+      };
+      val += m_integrator.integral(i, L2_err);
+    }
+    return std::sqrt(val);
+  }
+
+  Function inteprate(std::function<double(const Node &)> & f)
+  {
+    Function F(this);
+    auto & val = F.get_data();
+
+    int gdof = m_dof->number_of_dofs();
+    int ldof = m_dof->number_of_local_dofs();
+    val.resize(gdof, 0);
+    int NC = m_mesh->number_of_cells();
+
+    std::vector<MultiIndex> midxs;
+    MultiIndex::gen_all_index(m_p, 3, midxs);
+    std::array<double, 3> bc = {0.0, 0.0, 0.0};
+
+    for(int i = 0; i < NC; i++)
+    {
+      auto c2d = m_dof->cell_to_dof(i);
+      for(int j = 0; j < ldof; j++)
+      {
+        auto & idx = midxs[j];
+        bc[0] = (double)idx[0]/m_p;
+        bc[1] = (double)idx[1]/m_p;
+        bc[2] = (double)idx[2]/m_p;
+        auto po = m_mesh->bc_to_point(i, bc);
+        val[c2d[j]] = f(po);
+      }
+    }
+    return F;
   }
 
   const std::shared_ptr<LFESDof> get_dof()

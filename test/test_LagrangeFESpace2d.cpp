@@ -21,6 +21,7 @@
 #include "mesh/TriangleMesh.h"
 #include "mesh/TetrahedronMesh.h"
 #include "mesh/HexahedronMesh.h"
+#include "mesh/VTKMeshWriter.h"
 
 #include "functionspace/LagrangeFiniteElementSpace2d.h"
 
@@ -56,6 +57,7 @@ void test_basis(int p=1)
   typedef OF::Quadrature::LagrangeTriangleMeshQuadrature<Mesh> TQuadrature;
   typedef OF::FunctionSpace::LagrangeFiniteElementSpace2d<Mesh, AK, TQuadrature> Space;
   typedef Space::BSMatrix BSMatrix;
+  typedef OF::Mesh::VTKMeshWriter Writer;
 
   auto tmesh = std::make_shared<TMesh>();
   auto & nodes = tmesh->nodes();
@@ -70,6 +72,17 @@ void test_basis(int p=1)
   cells[0] = Cell({0, 1, 2});
   cells[1] = Cell({0, 2, 3});
   tmesh->init_top();
+
+  tmesh->uniform_refine(1);
+  auto & celll = tmesh->cell(0);
+  std::cout<< tmesh->node(celll[0]) <<std::endl;
+  std::cout<< tmesh->node(celll[1]) <<std::endl;
+  std::cout<< tmesh->node(celll[2]) <<std::endl;
+
+  Writer writer;                                                                
+  writer.set_points(*tmesh);                                                     
+  writer.set_cells(*tmesh);                                                      
+  writer.write("tmesh.vtu");                        
 
   auto mesh = std::make_shared<Mesh>(tmesh);
   std::shared_ptr<Space> space = std::make_shared<Space>(mesh, p);
@@ -138,37 +151,25 @@ void test_basis(int p=1)
   {
     std::cout<< "v[" << i << "] = " << sou_vec[i] <<std::endl;
   }
+
+  std::cout<< "开始测试 插值" << std::endl;
+  std::function<double(const Node &)> test_f = [] (const Node & p)->double 
+  {
+    return std::pow(p[0], 2)*p[1]+20*std::sin(p[0]+p[1]);
+  };
+
+  tmesh->print();
+  for(int i = 0; i < 4; i++)
+  {
+    tmesh->uniform_refine();
+    mesh = std::make_shared<Mesh>(tmesh);
+    space = std::make_shared<Space>(mesh, p);
+    auto intep_f = space->inteprate(test_f);
+    double val = space->L2_error(intep_f, test_f);
+    std::cout<< "加密次数: " << i << " 误差为: " << val <<std::endl;
+  }
 }
 
-/*
-void test_mass(int p=1)
-{
-  typedef OF::Mesh::TriangleMesh<GK, Node, Vector> Mesh;
-  typedef Mesh::Cell Cell;
-  typedef Mesh::Edge Edge;
-  typedef OF::Quadrature::LagrangeTriangleMeshQuadrature<Mesh> TQuadrature;
-  typedef OF::FunctionSpace::LagrangeFiniteElementSpace2d<Mesh, AK, TQuadrature> Space;
-  typedef Space::BSMatrix BSMatrix;
-
-  auto mesh = std::make_shared<Mesh>();
-  auto & nodes = mesh->nodes();
-  auto & cells = mesh->cells();
-
-  nodes.resize(4);
-  cells.resize(2);
-  nodes[0] = Node({0.0, 0.0});
-  nodes[1] = Node({2.0, 0.0});
-  nodes[2] = Node({2.0, 2.0});
-  nodes[3] = Node({0.0, 2.0});
-  cells[0] = Cell({0, 1, 2});
-  cells[1] = Cell({0, 2, 3});
-  mesh->init_top();
-
-  auto space = std::make_shared<Space>(mesh, p);
-  BSMatrix mass;
-  space->mass_matrix(mass);
-}
-*/
 
 int main(int argc, char **argv)
 {

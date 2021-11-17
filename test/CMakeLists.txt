@@ -8,9 +8,6 @@ add_test(Mesh test_TriangleMesh)
 add_executable(test_ScaledMonomialSpace2d test_ScaledMonomialSpace2d.cpp)
 add_test(FemSpace test_ScaledMonomialSpace2d)
 
-add_executable(test_LagrangeFESpace2d test_LagrangeFESpace2d.cpp)
-add_test(FemSpace test_LagrangeFESpace2d)
-
 add_executable(test_Multindex test_Multindex.cpp)
 add_test(Common test_Multindex)
 
@@ -31,6 +28,10 @@ add_test(array test_array)
 
 add_executable(test_Matrix test_Matrix.cpp)
 add_test(Algebra test_Matrix)
+
+add_executable(test_Eigen test_Eigen.cpp)
+add_test(Algebra test_Eigen)
+target_link_libraries(test_Eigen PRIVATE Eigen3::Eigen)
 
 add_executable(test_vector test_vector.cpp)
 add_test(Common test_vector)
@@ -94,6 +95,14 @@ if(${VTK_FOUND})
         TARGETS test_LagrangeTriangleMesh 
         MODULES ${VTK_LIBRARIES}
     )
+    add_executable(test_LagrangeFESpace2d test_LagrangeFESpace2d.cpp)
+    add_test(FemSpace test_LagrangeFESpace2d)
+    target_link_libraries(test_LagrangeFESpace2d PRIVATE ${VTK_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS test_LagrangeFESpace2d 
+        MODULES ${VTK_LIBRARIES}
+    )
+
 
 
 

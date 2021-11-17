@@ -77,9 +77,10 @@ void test_grad_shape_function()
   mesh->insert(Cell{1, 2, 0});
   mesh->insert(Cell{3, 0, 2});
   mesh->init_top();
+  //mesh->uniform_refine(1);
 
   LTMesh lmesh(mesh);
-  std::vector<double> bc{0.3, 0.3, 0.4};
+  std::array<double, 3> bc{0.2, 0.8, 0.0};
   std::vector<double> val;
   lmesh.shape_function(bc, val);
   for(int i = 0; i < (int)val.size(); i++)
@@ -96,6 +97,9 @@ void test_grad_shape_function()
   lmesh.jacobi_matrix(0, bc, jval);
   for(int i = 0; i < (int)jval.size(); i++)
     std::cout<< "jval[" << i << "] = " << jval[i] <<std::endl;
+
+  std::cout<< lmesh.bc_to_point(0, bc) <<std::endl;
+
 }
 
 int main()

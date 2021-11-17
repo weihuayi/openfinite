@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-
 def Histogram_plot(b):
     print("最差单元质量：", np.max(b))
     print("最优单元质量：", np.min(b))
@@ -19,7 +18,7 @@ def Histogram_plot(b):
     axes = fig.gca()
     axes.bar(A[:-1], B, 0.018)
     #axes.ylim(0, np.max(B)*1.05)
-    plt.ylim(0, 0.2)
+    plt.ylim(0, 0.1)
     plt.xlabel("cell quality")
     plt.ylabel("Proportion")
     fig.savefig('%f.svg' %B[25], dpi=600)

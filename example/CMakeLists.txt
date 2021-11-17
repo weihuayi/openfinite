@@ -99,5 +99,11 @@ if(${VTK_FOUND} AND ${MPI_FOUND})
         TARGETS parallel_mesh_coloring 
         MODULES ${VTK_LIBRARIES}
     )
+    add_executable(Poisson Poisson.cpp )
+    target_link_libraries(Poisson PRIVATE ${VTK_LIBRARIES} Eigen3::Eigen)
+    vtk_module_autoinit(
+        TARGETS Poisson
+        MODULES ${VTK_LIBRARIES}
+    )
 
 endif()
