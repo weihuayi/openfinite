@@ -58,7 +58,7 @@ public:
       auto J = m_mesh->det_jacobi(i, qpts);
       val += f(qpts)*w*J;
     }
-    val /= 2.0;
+    val *= 0.5;
     return val;
   }
 

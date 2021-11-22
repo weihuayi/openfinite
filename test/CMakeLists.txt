@@ -36,6 +36,9 @@ target_link_libraries(test_Eigen PRIVATE Eigen3::Eigen)
 add_executable(test_vector test_vector.cpp)
 add_test(Common test_vector)
 
+add_executable(test_map test_map.cpp)
+add_test(Common test_map)
+
 add_executable(test_TriangleQuadrature test_TriangleQuadrature.cpp)
 add_test(Quadrature test_TriangleQuadrature)
 
@@ -102,10 +105,13 @@ if(${VTK_FOUND})
         TARGETS test_LagrangeFESpace2d 
         MODULES ${VTK_LIBRARIES}
     )
-
-
-
-
+    add_executable(test_BDM test_BDM.cpp)
+    add_test(FemSpace test_BDM)
+    target_link_libraries(test_BDM PRIVATE ${VTK_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS test_BDM 
+        MODULES ${VTK_LIBRARIES}
+    )
 endif()
 
 

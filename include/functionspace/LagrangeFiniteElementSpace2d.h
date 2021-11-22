@@ -13,6 +13,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <time.h>
 
 #include <functional>
 
@@ -47,7 +48,9 @@ public:
     m_dpoint.resize(number_of_local_dofs());
     m_dpoint[0] = {0, 0, 0};
 
-    int num = 1, num0 = 0;
+    int num = 1, num0 = 0;/**< num 是自由度的计数器, num0 是单元内部的自由度的计数器 */
+
+    /** 逐层编号, 共 m_p+1 层, 这里编中间的 m_p-1 层 */
     for(int i = 0; i < m_p-1; i++)
     {
       m_dpoint[num++] = {1, 0, i};
@@ -57,6 +60,8 @@ public:
       }
       m_dpoint[num++] = {1, 1, i};
     }
+
+    /** 编最后一层编号 */
     m_dpoint[num++] = {0, 1, 0};
     for(int i = 0; i < m_p-1; i++)
     {
@@ -141,7 +146,12 @@ public:
     m_mesh->cell_to_vertex(i, c2v);
     const auto & c2e = m_mesh->cell_to_edge(i);
 
+    std::vector<int> edge2dof[3];
+    for(int i = 0; i < 3; i++)
+      edge2dof[i] = edge_to_dof(c2e[i]);
+
     auto & idx = m_mesh->m_localedgeindex; /**< 网格局部边的编号与递增序列编号的索引 TODO */
+
     bool eflag[3]; /**< 三条边的方向是否正确 */
     eflag[0] = edge[c2e[idx[0]]][0] == c2v[0];
     eflag[1] = edge[c2e[idx[1]]][0] == c2v[0];
@@ -155,8 +165,7 @@ public:
       }
       else if(m_dpoint[j][0]==1) /**< 1维 域点 */
       {
-        int e = c2e[idx[m_dpoint[j][1]]];
-        auto e2d = edge_to_dof(e);
+        const auto & e2d = edge2dof[idx[m_dpoint[j][1]]];
         if(eflag[m_dpoint[j][1]])
           c2d[j] = e2d[m_dpoint[j][2]+1];
         else
@@ -187,6 +196,12 @@ public:
       }
     }
   }
+
+  std::vector<MultiIndex> & get_multindex()
+  {
+    return m_indexs;
+  }
+
 
 private:
   int m_p;
@@ -221,6 +236,8 @@ public:
   typedef OF::Common::MultiIndex MultiIndex;
   typedef FEMFunction<LagrangeFiniteElementSpace2d, double> Function;
 
+  double runtime;
+
 public:
 
   /**
@@ -230,7 +247,7 @@ public:
    * \todo 积分子有两个
    */
   LagrangeFiniteElementSpace2d(std::shared_ptr<Mesh> mesh, int p): 
-    m_p(p), m_mesh(mesh), m_integrator(mesh, p+3)
+    m_p(p), m_mesh(mesh), m_integrator(mesh, p+3), runtime(0)
   {
     m_dof = std::make_shared<LFESDof>(mesh, p);
   }
@@ -306,22 +323,12 @@ public:
     }
 
     /** 计算 \nabla_lambda */
-    Vector_2 v[3];
-    Vector GLambda[3];
+    std::vector<Vector_2> v(3);
+    std::vector<Vector> GLambda(3);
     v[0] = Vector_2{-1.0, -1.0};
     v[1] = Vector_2{1.0, 0.0};
     v[2] = Vector_2{0.0, 1.0};
-    std::vector<std::array<double, 2>> J; 
-    m_mesh->jacobi_matrix(c, bc, J);
-    if(m_mesh->geo_dimension()==2)
-    {
-      double det_J = J[0][0]*J[1][1] - J[0][1]*J[1][0];
-      for(int i = 0; i < 3; i++)
-      {
-        GLambda[i][0] = (J[1][1] * v[i][0] - J[1][0] * v[i][1])/det_J;
-        GLambda[i][1] = (-J[0][1] * v[i][0] + J[0][0] * v[i][1])/det_J;
-      }
-    }
+    m_mesh->push_dual_vector(c, bc, v, GLambda);
 
     int P = 1;
     for(int i = 0; i < p; i++)/**< 乘 P */
@@ -339,8 +346,9 @@ public:
    * 前三个形函数是重心坐标函数其数值就是 bc[0], bc[1], bc[2].
    */
   template<class Container>
-  void basis(int i, const Container & bc, std::vector<double> & val)
+  void basis(int c, const Container & bc, std::vector<double> & val)
   {
+    c++;
     const int p = m_p;
     int ldof = m_dof->number_of_local_dofs();
     /** 计算 B */
@@ -348,12 +356,11 @@ public:
     BMatrix(bc, B);
 
     /** 计算基函数值 val */
-    MultiIndex midx(p, 3);
+    auto & midx = m_dof->get_multindex();
     val.resize(ldof, 0);
     for(int i = 0; i < ldof; i++)
     {
-      val[i] = B[midx[0]][0]*B[midx[1]][1]*B[midx[2]][2];
-      midx.nex_multi_index();
+      val[i] = B[midx[i][0]][0]*B[midx[i][1]][1]*B[midx[i][2]][2];
     }
   }
 
@@ -374,14 +381,13 @@ public:
     nabla_BMatrix(c, bc, NB);
 
     /** 计算基函数梯度值 val */
-    MultiIndex midx(p, 3);
     val.resize((p+1)*(p+2)/2);
     for(int i = 0; i < (int)val.size(); i++)
     {
+      auto & midx = m_dof->get_multindex()[i];
       val[i] = B[midx[1]][1]*B[midx[2]][2]*NB[midx[0]][0] + 
         B[midx[0]][0]*B[midx[2]][2]*NB[midx[1]][1] + 
         B[midx[0]][0]*B[midx[1]][1]*NB[midx[2]][2];
-      midx.nex_multi_index();
     }
   }
 
@@ -424,8 +430,11 @@ public:
     std::function<void(const std::array<double, 3>&, Matrix&)> phi_jk = [this, &i]
       (const std::array<double, 3> & bc, Matrix & m)->void
     {
+      clock_t s0, s1, s2;
+      s0 = clock();
       std::vector<Vector> val;
       grad_basis(i, bc, val);
+      s1 = clock();
       int N = val.size();
       m.reshape(N, N);
       for(int j = 0; j < N; j++)
@@ -435,6 +444,7 @@ public:
           m[j][k] = dot(val[j], val[k]);
         }
       }
+      s2 = clock();
     };
     m_integrator.integral(i, phi_jk, stiff);
   }
@@ -477,6 +487,7 @@ public:
     {
       Matrix mat;
       stiff_matrix(i, mat);
+
       auto celldof = m_dof->cell_to_dof(i); 
       for(int j = 0; j < ldof; j++)
       {
@@ -584,6 +595,11 @@ public:
   const std::shared_ptr<LFESDof> get_dof()
   {
     return m_dof;
+  }
+
+  const std::shared_ptr<Mesh> get_mesh()
+  {
+    return m_mesh;
   }
 
 private:

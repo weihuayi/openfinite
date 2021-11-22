@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iomanip>
 #include <time.h>
+#include <chrono>
 
 #include <Eigen/Sparse>
 #include <Eigen/IterativeLinearSolvers>
@@ -32,7 +33,7 @@ typedef GK::Vector_2 Vector;
 
 typedef OF::Mesh::TriangleMesh<GK, Node, Vector> TMesh;
 typedef TMesh::Cell Cell;
-typedef OF::Mesh::LagrangeTriangleMesh<GK, Node, Vector, 3> Mesh;
+typedef OF::Mesh::LagrangeTriangleMesh<GK, Node, Vector, 1> Mesh;
 typedef OF::Quadrature::LagrangeTriangleMeshQuadrature<Mesh> TQuadrature;
 typedef OF::FunctionSpace::LagrangeFiniteElementSpace2d<Mesh, AK, TQuadrature> Space;
 typedef Space::BSMatrix BSMatrix;
@@ -43,6 +44,8 @@ typedef Eigen::VectorXd VectorXd;
 typedef Eigen::ConjugateGradient<CSRMatrix, Eigen::Lower|Eigen::Upper> Solver;
 
 const double pi = M_PI;
+
+using namespace std::chrono;
 
 void solve(std::vector<int> & I, std::vector<int> & J, 
     std::vector<double> & data, std::vector<double> & b, std::vector<double> & x)
@@ -168,8 +171,22 @@ int main(int argc, char ** argv)
 
   // 生成刚度矩阵的 BSMatrix
   std::cout<< "开始 stiff mairix" << std::endl;
+
+  auto start = high_resolution_clock::now();
   BSMatrix stiff;
   space->stiff_matrix(stiff);
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start);
+  std::cout << "BSMatrix 刚度矩阵组装时间: "
+       << duration.count()/1e+6 << " seconds" << std::endl;
+
+  start = high_resolution_clock::now();
+  BSMatrix mass;
+  space->mass_matrix(mass);
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+  std::cout << "BSMatrix 刚度矩阵组装时间: "
+       << duration.count()/1e+6 << " seconds" << std::endl;
 
   // 设置右端向量
   VectorXd x(gdof);
@@ -195,6 +212,7 @@ int main(int argc, char ** argv)
     }
   }
 
+  //准备数据调用 numpy 计算 Ax = b
   int ND = stiff.size();
   std::vector<int> I;
   std::vector<int> J;
@@ -242,11 +260,8 @@ int main(int argc, char ** argv)
   };
   double err = space->L2_error(uh, Trust_s);
   std::cout<< "误差为: " << err <<std::endl;
+  std::cout<< "组装BM: " << space->runtime <<std::endl;
+  std::cout<< "组装BM: " << space->get_mesh()->runtime <<std::endl;
 }
-
-
-
-
-
 
 

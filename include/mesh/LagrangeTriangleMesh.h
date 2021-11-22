@@ -68,10 +68,11 @@ public:
   static int m_localedge[3][2];
   static int m_vtkidx[10];
   static int m_num[3][3];
+  double runtime;
 
 public:
   template<class Mesh>
-  LagrangeTriangleMesh(std::shared_ptr<Mesh> linemesh)
+  LagrangeTriangleMesh(std::shared_ptr<Mesh> linemesh): runtime(0)
   {
     m_holes = 1; // 默认一个外部无界区域的洞
     m_genus = 0;
@@ -288,6 +289,7 @@ public:
   template<class Container>
   void BMatrix(const Container & bc, std::vector<std::array<double, 3>> & B)
   {
+    clock_t s = clock();
     /** 计算 B */
     B[0] = {1, 1, 1};
     for(int i = 0; i < p; i++)/**< 赋值 */
@@ -309,6 +311,8 @@ public:
       for(int j = 0; j < 3; j++)
         B[i+1][j] /= P;
     }
+    clock_t e = clock();
+    runtime += (double)(e-s)/CLOCKS_PER_SEC;
   }
 
   template<class Container>
@@ -435,7 +439,7 @@ public:
     }
   }
 
-  Node bc_to_point(int i, std::array<double, 3> bc)
+  Node bc_to_point(int i, const std::array<double, 3> & bc)
   {
     std::vector<double> sf;
     shape_function(bc, sf);
@@ -446,6 +450,65 @@ public:
       point += sf[i]*m_node[c[i]];
     }
     return point;
+  }
+
+  Node bc_to_edge_point(); //TODO
+  
+  void push_dual_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
+  {
+    auto GD = geo_dimension();
+    std::vector<std::array<double, 2>> J(GD, {0, 0});
+    jacobi_matrix(c, bc, J);
+
+    v1.resize(v0.size());
+    if(GD == 2)/**< 推前矩阵为 (J^T)^{-1} */
+    {
+      double det_J = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+      for(int i = 0; i < (int)v0.size(); i++)
+      {
+        v1[i][0] = (J[1][1] * v0[i][0] - J[1][0] * v0[i][1])/det_J;
+        v1[i][1] = (-J[0][1] * v0[i][0] + J[0][0] * v0[i][1])/det_J;
+      }
+    }
+    else/**< 推前矩阵为 J(J^T J)^{-1} */
+    {
+      double G[3] = {0, 0, 0};
+      for(int i = 0; i < GD; i++)
+      {
+        G[0] += J[i][0]*J[i][0];
+        G[1] += J[i][1]*J[i][0];
+        G[2] += J[i][1]*J[i][1];
+      }
+      double det_G = G[0]*G[2] - G[1]*G[1];
+      for(int i = 0; i < GD; i++)
+      {
+        double a = (J[i][0]*G[2] - J[i][1]*G[1])/det_G;
+        double b = (-J[i][0]*G[1] + J[i][1]*G[0])/det_G;
+        J[i][0] = a;
+        J[i][1] = b;
+      }/**< 获得推前矩阵 */
+      for(int i = 0; i < (int)v0.size(); i++)
+      {
+        for(int j = 0; j < GD; j++)
+        {
+          v1[i][j] = (J[j][0] * v0[i][0] + J[j][1] * v0[i][1]);
+        }
+      }
+    }
+  }
+
+  void push_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
+  {
+    auto J = jacobi_matrix(c, bc);
+    int GD = geo_dimension();
+    v1.resize(v0.size());
+    for(int i = 0; i < (int)v0.size(); i++)
+    {
+      for(int j = 0; j < GD; j++)
+      {
+        v1[i][j] = J[j][0]*v0[i][0] + J[j][1]*v0[i][0];
+      }
+    }
   }
 
   template<class Container0>
