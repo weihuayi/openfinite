@@ -66,18 +66,35 @@ endif()
 
 # ParMetis
 # sudo apt install libparmetis-dev libmetis-dev
+
+find_path(METIS_INCLUDE_DIR metis.h
+    /usr/include
+)
+
 find_path(PARMETIS_INCLUDE_DIR parmetis.h
-  /usr/local/include
-  /usr/include
+    /usr/include
 )
+
 find_library(PARMETIS_LIBRARY parmetis
-  /usr/local/lib
-  /usr/lib
+    /usr/lib
 )
+
 find_library(METIS_LIBRARY metis
-  /usr/local/lib
-  /usr/lib
+    /usr/lib
 )
+
+if(METIS_INCLUDE_DIR)
+  if(METIS_LIBRARY)
+    set(METIS_FOUND TRUE )
+  endif(METIS_LIBRARY)
+endif(METIS_INCLUDE_DIR)
+
+if(NOT ${METIS_FOUND})
+    message("METIS not found")
+else()
+    include_directories(${METIS_INCLUDE_DIR})
+    message("Found METIS! ${METIS_INCLUDE_DIR} ${METIS_LIBRARY}")
+endif()
 
 if(PARMETIS_INCLUDE_DIR)
   if(PARMETIS_LIBRARY)
@@ -90,7 +107,7 @@ if(NOT ${PARMETIS_FOUND})
     message("PARMETIS not found")
 else()
     include_directories(${PARMETIS_INCLUDE_DIR})
-    message("Found PARMETIS! ${PARMETIS_INCLUDE_DIR}")
+    message("Found PARMETIS! ${PARMETIS_INCLUDE_DIR} ${PARMETIS_LIBRARIES}")
 endif()
 
 # Gmsh

@@ -15,26 +15,26 @@ if(${VTK_FOUND})
         MODULES ${VTK_LIBRARIES}
     )
 
-    add_executable(pmesh_tetmesh_generation pmesh_tetmesh_generation.cpp)
-    target_link_libraries(pmesh_tetmesh_generation PRIVATE ${CGAL_LIBRARIES}
-        ${VTK_LIBRARIES} ${METIS_LIBRARY})
-    vtk_module_autoinit(
-        TARGETS pmesh_tetmesh_generation 
-        MODULES ${VTK_LIBRARIES}
-    )
-
-    add_executable(pmesh_trimesh_generation pmesh_trimesh_generation.cpp)
-    target_link_libraries(pmesh_trimesh_generation PRIVATE ${CGAL_LIBRARIES}
-        ${VTK_LIBRARIES} ${METIS_LIBRARY})
-    vtk_module_autoinit(
-        TARGETS pmesh_trimesh_generation 
-        MODULES ${VTK_LIBRARIES}
-    )
-
+#    add_executable(pmesh_tetmesh_generation pmesh_tetmesh_generation.cpp)
+#    target_link_libraries(pmesh_tetmesh_generation PRIVATE ${CGAL_LIBRARIES}
+#        ${VTK_LIBRARIES} ${METIS_LIBRARY})
+#    vtk_module_autoinit(
+#        TARGETS pmesh_tetmesh_generation 
+#        MODULES ${VTK_LIBRARIES}
+#    )
+#
+#    add_executable(pmesh_trimesh_generation pmesh_trimesh_generation.cpp)
+#    target_link_libraries(pmesh_trimesh_generation PRIVATE ${CGAL_LIBRARIES}
+#        ${VTK_LIBRARIES} ${METIS_LIBRARY})
+#    vtk_module_autoinit(
+#        TARGETS pmesh_trimesh_generation 
+#        MODULES ${VTK_LIBRARIES}
+#    )
+#
     add_executable(functional_programming_fem_example
         functional_programming_fem_example.cpp)
     target_link_libraries(functional_programming_fem_example PRIVATE ${CGAL_LIBRARIES}
-        ${VTK_LIBRARIES} ${METIS_LIBRARY})
+        ${VTK_LIBRARIES})
     vtk_module_autoinit(
         TARGETS functional_programming_fem_example 
         MODULES ${VTK_LIBRARIES}
