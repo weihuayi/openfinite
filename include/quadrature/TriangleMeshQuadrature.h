@@ -77,7 +77,7 @@ public:
   /**
    * \brief 积分函数, 对于被给函数在被给网格上积分, 返回积分值
    * \param i 积分单元
-   * \param f 被积函数, 要求是 Point, I -> R 的函数
+   * \param f 被积函数, 要求是 (Node, I) -> R 的函数
    */
   F integral(std::function<F(const Node &, I)> f)
   {

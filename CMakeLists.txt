@@ -126,6 +126,8 @@ else()
     message("${OpenBLAS_LIBRARIES}")
 endif()
 
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+
 enable_testing()
 add_subdirectory(test)
 add_subdirectory(example)

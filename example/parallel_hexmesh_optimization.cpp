@@ -206,7 +206,7 @@ int main(int argc, char * argv[])
     wfile<< "优化网格单元平均质量为: " << o_ave_q << "\n";
     wfile<< "\n\n\n\n";
     wfile.close();
-    //plot(cellQualityInit, cellQualityOpt);
+    plot(cellQualityInit, cellQualityOpt);
   }
   std::stringstream ss;
   ss << "opt_"<< mesh->id() << ".vtu";

@@ -151,8 +151,8 @@ inline Vector_3<F> operator - (const Vector_3<F> & v0, const Vector_3<F> & v1)
     return v;
 }
 
-template<typename F>
-inline Vector_3<F> operator * (const F w, const Vector_3<F> & v0)
+template<typename F, typename I>
+inline Vector_3<F> operator * (const I w, const Vector_3<F> & v0)
 {
     Vector_3<F> v;
     for(int d = 0; d < 3; d++)
@@ -160,8 +160,8 @@ inline Vector_3<F> operator * (const F w, const Vector_3<F> & v0)
     return v;
 }
 
-template<typename F>
-inline Vector_3<F> operator * (const Vector_3<F> & v0, const F w)
+template<typename F, typename I>
+inline Vector_3<F> operator * (const Vector_3<F> & v0, const I w)
 {
     Vector_3<F> v;
     for(int d = 0; d < 3; d++)

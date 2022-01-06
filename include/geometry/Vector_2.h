@@ -157,8 +157,8 @@ inline Vector_2<F> operator - (const Vector_2<F> & v0, const Vector_2<F> & v1)
     return v;
 }
 
-template<typename F>
-inline Vector_2<F> operator * (F w, const Vector_2<F> & v0)
+template<typename F, typename I>
+inline Vector_2<F> operator * (I w, const Vector_2<F> & v0)
 {
     Vector_2<F> v;
     for(auto d = 0; d < 2; d++)

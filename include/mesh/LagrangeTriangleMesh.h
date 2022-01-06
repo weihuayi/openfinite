@@ -13,6 +13,7 @@
 #include "MeshToplogy.h"
 #include "NodeData.h"
 #include "common/Multindex.h"
+#include "geometry/Vector_2.h"
 
 namespace OF {
 namespace Mesh {
@@ -32,6 +33,8 @@ class LagrangeTriangleMesh
 public:
   typedef NODE Node;
   typedef VECTOR Vector;
+
+  typedef typename GK::Vector_2 Vector_2; 
 
   typedef typename GK::Int I;
   typedef typename GK::Float F;
@@ -61,19 +64,22 @@ public:
 
   typedef typename OF::Common::MultiIndex MultiIndex;
 
+  static int m_localedgeindex[3];
   static int m_localedge[3][2];
-  static int m_vtkidx[3];
+  static int m_vtkidx[10];
   static int m_num[3][3];
+  double runtime;
 
 public:
   template<class Mesh>
-  LagrangeTriangleMesh(std::shared_ptr<Mesh> linemesh)
+  LagrangeTriangleMesh(std::shared_ptr<Mesh> linemesh): runtime(0)
   {
     m_holes = 1; // 默认一个外部无界区域的洞
     m_genus = 0;
 
     m_edge2cell = linemesh->edge_to_cell();
     m_cell2edge = linemesh->cell_to_edge();
+    m_NN = linemesh->number_of_nodes();
 
     construct_mesh_entity(linemesh);
   }
@@ -120,7 +126,7 @@ public:
 
   I number_of_nodes()
   {
-      return m_node.size();
+      return m_NN;
   }
 
   I number_of_cells()
@@ -140,9 +146,9 @@ public:
 
   I vtk_cell_type(int TD=2)
   {
-      if(TD == 2) //TODO:
-          return 5; // VTK_TRIANGLE
-      else if(TD == 1)
+      if(TD == 2)
+          return 69; // VTK_LAGRANGE_TRIANGLE
+      else if(TD == 1)//TODO
           return 3; // VTK_LINE
       else
         return 0;// VTK_EMPLTY_CELL = 0
@@ -211,8 +217,8 @@ public:
       m_edge[i][0] = edge[i][0];
       for(int j = 1; j < p; j++)
       {
-        m_edge[i][j] = NN+i*NE+j;
-        m_node[m_edge[i][j]] = (j*node[edge[i][0]] + (p-j)*node[edge[i][1]])/p;
+        m_edge[i][j] = NN+i*NNE+j-1;
+        m_node[m_edge[i][j]] = (j*node[edge[i][1]] + (p-j)*node[edge[i][0]])/p;
       }
       m_edge[i][p] = edge[i][1];
     }
@@ -225,10 +231,11 @@ public:
     get_domain_point(dpoint);
     for(int i = 0; i < NC; i++)
     {
+      auto & idx = m_localedgeindex; /**< 网格局部边的编号与递增序列编号的索引 TODO */
       bool eflag[3]; /**< 三条边的方向是否正确 */
-      eflag[0] = m_edge2cell[m_cell2edge[i][0]][0]==i;
-      eflag[1] = m_edge2cell[m_cell2edge[i][1]][0]==i;
-      eflag[2] = m_edge2cell[m_cell2edge[i][2]][0]==i;
+      eflag[0] = edge[m_cell2edge[i][idx[0]]][0] == cell[i][0];
+      eflag[1] = edge[m_cell2edge[i][idx[1]]][0] == cell[i][0];
+      eflag[2] = edge[m_cell2edge[i][idx[2]]][0] == cell[i][1];
 
       for(int j = 0; j < (int)mindexs.size(); j++)/**< 循环所有域点 */
       {
@@ -239,16 +246,15 @@ public:
         else if(dpoint[j][0]==1) /**< 1维 域点 */
         {
           if(eflag[dpoint[j][1]])
-            m_cell[i][j] = m_edge[m_cell2edge[i][dpoint[j][1]]][dpoint[j][2]+1];
+            m_cell[i][j] = m_edge[m_cell2edge[i][idx[dpoint[j][1]]]][dpoint[j][2]+1];
           else
-            m_cell[i][j] = m_edge[m_cell2edge[i][dpoint[j][1]]][p-dpoint[j][2]-1];
+            m_cell[i][j] = m_edge[m_cell2edge[i][idx[dpoint[j][1]]]][p-dpoint[j][2]-1];
         }
         else /**< 2维 域点 */
         {
           m_cell[i][j] = NN + NE*NNE + i*NNC + dpoint[j][2];
-          m_node[m_cell[i][j]] = ((double)mindexs[j][0]*node[cell[i][0]] + 
-              (double)mindexs[j][1]*node[cell[i][1]]+
-              (double)mindexs[j][2]*node[cell[i][2]])/(double)p;
+          m_node[m_cell[i][j]] = (mindexs[j][0]*node[cell[i][0]] + 
+              mindexs[j][1]*node[cell[i][1]] + mindexs[j][2]*node[cell[i][2]])/p;
         }
       }
     }
@@ -280,123 +286,311 @@ public:
     domain[num++] = {0, 2, 0};
   }
 
+  template<class Container>
+  void BMatrix(const Container & bc, std::vector<std::array<double, 3>> & B)
+  {
+    clock_t s = clock();
+    /** 计算 B */
+    B[0] = {1, 1, 1};
+    for(int i = 0; i < p; i++)/**< 赋值 */
+    {
+      for(int j = 0; j < 3; j++)
+        B[i+1][j] = p*bc[j] - i;
+    }
+
+    for(int i = 0; i < p; i++)/**< 连乘 */
+    {
+      for(int j = 0; j < 3; j++)
+        B[i+1][j] *= B[i][j];
+    }
+
+    int P = 1;
+    for(int i = 0; i < p; i++)/**< 乘 P */
+    {
+      P *= i+1;
+      for(int j = 0; j < 3; j++)
+        B[i+1][j] /= P;
+    }
+    clock_t e = clock();
+    runtime += (double)(e-s)/CLOCKS_PER_SEC;
+  }
+
+  template<class Container>
+  void nabla_BMatrix(const Container & bc, std::vector<std::array<Vector_2, 3>> & NB)
+  {
+    /** 计算 D^i */
+    std::vector<std::array<double, p>> D0(p);
+    std::vector<std::array<double, p>> D1(p);
+    std::vector<std::array<double, p>> D2(p);
+    for(int i = 0; i < p; i++)/**< 赋值 */
+    {
+      for(int j = 0; j < p; j++)
+      {
+        D0[i][j] = p*bc[0]-i;
+        D1[i][j] = p*bc[1]-i;
+        D2[i][j] = p*bc[2]-i;
+      }
+      D0[i][i] = p;
+      D1[i][i] = p;
+      D2[i][i] = p;
+    }
+
+    for(int i = 1; i < p; i++)/**< 连乘 */
+    {
+      for(int j = 0; j < p; j++)
+      {
+        D0[i][j] *= D0[i-1][j];
+        D1[i][j] *= D1[i-1][j];
+        D2[i][j] *= D2[i-1][j];
+      }
+    }
+
+    /** 计算 D */
+    std::vector<std::array<double, 3> > D(p+1, {0, 0, 0});
+    for(int i = 0; i < p; i++)
+    {
+      for(int j = 0; j < i+1; j++)
+      {
+        D[i+1][0] += D0[i][j];
+        D[i+1][1] += D1[i][j];
+        D[i+1][2] += D2[i][j];
+      }
+    }
+
+    Vector_2 GLambda[3];
+    GLambda[0] = Vector_2{-1.0, -1.0};
+    GLambda[1] = Vector_2{1.0, 0.0};
+    GLambda[2] = Vector_2{0.0, 1.0};
+
+    int P = 1;
+    for(int i = 0; i < p; i++)/**< 乘 P */
+    {
+      P *= i+1;
+      for(int j = 0; j < 3; j++)
+      {
+        NB[i+1][j] = D[i+1][j]*GLambda[j]/P;
+      }
+    }
+  }
+
+  /**
+   * \brief 计算 Lagrange 形函数在重心坐标为 bc 的点处的值.
+   * 前三个形函数是重心坐标函数其数值就是 bc[0], bc[1], bc[2].
+   */
+  template<class Container>
+  void shape_function(const Container & bc, std::vector<double> & val)
+  {
+    /** 计算 B */
+    std::vector<std::array<double, 3>> B(p+1, {1, 1, 1});
+    BMatrix(bc, B);
+
+    /** 计算形函数值 val */
+    MultiIndex midx(p, 3);
+    val.resize((p+1)*(p+2)/2);
+    for(int i = 0; i < (int)val.size(); i++)
+    {
+      val[i] = B[midx[0]][0]*B[midx[1]][1]*B[midx[2]][2];
+      midx.nex_multi_index();
+    }
+  }
+
+  /**
+   * \brief 计算 Lagrange 形函数在重心坐标为 bc 的点处的值.
+   * 前三个形函数是重心坐标函数其数值就是 bc[0], bc[1], bc[2].
+   */
+  template<class Container>
+  void grad_shape_function(const Container & bc, std::vector<Vector_2> & val)
+  {
+    /** 计算 B */
+    std::vector<std::array<double, 3>> B(p+1, {1, 1, 1});
+    BMatrix(bc, B);
+
+    /** 计算 \nabla B */
+    std::vector<std::array<Vector_2, 3>> NB(p+1);
+    nabla_BMatrix(bc, NB);
+
+    /** 计算形函数梯度值 val */
+    MultiIndex midx(p, 3);
+    val.resize((p+1)*(p+2)/2);
+    for(int i = 0; i < (int)val.size(); i++)
+    {
+      val[i] = B[midx[1]][1]*B[midx[2]][2]*NB[midx[0]][0] + 
+        B[midx[0]][0]*B[midx[2]][2]*NB[midx[1]][1] + 
+        B[midx[0]][0]*B[midx[1]][1]*NB[midx[2]][2];
+      midx.nex_multi_index();
+    }
+  }
+
+  template<class Container0, class Container1>
+  void jacobi_matrix(int c, const Container0 & bc,  Container1 & val)
+  {
+    std::vector<Vector_2> gsf;
+    grad_shape_function(bc, gsf);
+    val.resize(geo_dimension(), {0, 0});
+    for(int i = 0; i < number_of_nodes_of_each_cell(); i++)
+    {
+      for(int j = 0; j < geo_dimension(); j++)
+      {
+        for(int k = 0; k < 2; k++)
+        {
+          val[j][k] += m_node[m_cell[c][i]][j] * gsf[i][k];
+        }
+      }
+    }
+  }
+
+  Node bc_to_point(int i, const std::array<double, 3> & bc)
+  {
+    std::vector<double> sf;
+    shape_function(bc, sf);
+    auto & c = cell(i);
+    Node point = sf[0]*m_node[c[0]];
+    for(int i = 1; i < number_of_nodes_of_each_cell(); i++)
+    {
+      point += sf[i]*m_node[c[i]];
+    }
+    return point;
+  }
+
+  Node bc_to_edge_point(); //TODO
+  
+  void push_dual_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
+  {
+    auto GD = geo_dimension();
+    std::vector<std::array<double, 2>> J(GD, {0, 0});
+    jacobi_matrix(c, bc, J);
+
+    v1.resize(v0.size());
+    if(GD == 2)/**< 推前矩阵为 (J^T)^{-1} */
+    {
+      double det_J = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+      for(int i = 0; i < (int)v0.size(); i++)
+      {
+        v1[i][0] = (J[1][1] * v0[i][0] - J[1][0] * v0[i][1])/det_J;
+        v1[i][1] = (-J[0][1] * v0[i][0] + J[0][0] * v0[i][1])/det_J;
+      }
+    }
+    else/**< 推前矩阵为 J(J^T J)^{-1} */
+    {
+      double G[3] = {0, 0, 0};
+      for(int i = 0; i < GD; i++)
+      {
+        G[0] += J[i][0]*J[i][0];
+        G[1] += J[i][1]*J[i][0];
+        G[2] += J[i][1]*J[i][1];
+      }
+      double det_G = G[0]*G[2] - G[1]*G[1];
+      for(int i = 0; i < GD; i++)
+      {
+        double a = (J[i][0]*G[2] - J[i][1]*G[1])/det_G;
+        double b = (-J[i][0]*G[1] + J[i][1]*G[0])/det_G;
+        J[i][0] = a;
+        J[i][1] = b;
+      }/**< 获得推前矩阵 */
+      for(int i = 0; i < (int)v0.size(); i++)
+      {
+        for(int j = 0; j < GD; j++)
+        {
+          v1[i][j] = (J[j][0] * v0[i][0] + J[j][1] * v0[i][1]);
+        }
+      }
+    }
+  }
+
+  void push_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
+  {
+    auto J = jacobi_matrix(c, bc);
+    int GD = geo_dimension();
+    v1.resize(v0.size());
+    for(int i = 0; i < (int)v0.size(); i++)
+    {
+      for(int j = 0; j < GD; j++)
+      {
+        v1[i][j] = J[j][0]*v0[i][0] + J[j][1]*v0[i][0];
+      }
+    }
+  }
+
+  template<class Container0>
+  double det_jacobi(int c, const Container0 & bc)
+  {
+    std::vector<std::array<double, 2>> J; 
+    jacobi_matrix(c, bc, J);
+    double det[3] = {0.0, 0.0, 0.0};
+    for(int k = 0; k < (int)J.size(); k++)
+    {
+      det[0] += J[k][0]*J[k][0];
+      det[1] += J[k][0]*J[k][1];
+      det[2] += J[k][1]*J[k][1];
+    }
+    return std::sqrt(det[0]*det[2] - det[1]*det[1]);
+  }
+
+  bool is_boundary_edge(int i)
+  {
+    return edge_to_cell(i)[0] == edge_to_cell(i)[1];
+  }
+
   void is_boundary_edge(std::vector<bool> & isBdEdge)
   {
-      auto NE = number_of_edges();
-      isBdEdge.resize(NE);
-      for(int i = 0; i < NE; i++)
-      {
-          isBdEdge[i] = false;
-          if(edge_to_cell(i)[0]==edge_to_cell(i)[1])
-              isBdEdge[i] = true;
-      }
+    auto NE = number_of_edges();
+    isBdEdge.resize(NE, false);
+    for(int i = 0; i < NE; i++)
+    {
+      isBdEdge[i] = edge_to_cell(i)[0]==edge_to_cell(i)[1];
+    }
   }
 
   void is_boundary_node(std::vector<bool> & isBdNode)
   {
-      auto NN = number_of_nodes();
-      auto NE = number_of_edges();
-      isBdNode.resize(NN);
-      for(int i = 0; i < NE; i++)
-      {
-          if(edge_to_cell(i)[0]==edge_to_cell(i)[1])
-          {
-              isBdNode[edge(i)[0]] = true;
-              isBdNode[edge(i)[1]] = true;
-          }
-      }
-  }
-
-
-  void cell_to_cell(Toplogy & top)
-  {
-      auto NC = number_of_cells();
-      auto NE = number_of_edges();
-      auto & loc = top.locations();
-      loc.resize(NC+1, 0);
-      for(I i=0; i < NE; i++)
-      {
-          loc[m_edge2cell[i][0]+1] += 1;
-          if(m_edge2cell[i][0] != m_edge2cell[i][1])
-          {
-              loc[m_edge2cell[i][1]+1] += 1;
-          }
-      }
-      for(I i=0; i < NC; i++)
-      {
-          loc[i+1] += loc[i];
-      }
-
-      auto & nei = top.neighbors();
-      nei.resize(loc[NC]);
-      std::vector<I> start = loc;
-      for(I i = 0; i < NE; i++)
-      {
-          nei[start[m_edge2cell[i][0]]++] = m_edge2cell[i][1];
-          if(m_edge2cell[i][0] != m_edge2cell[i][1])
-          {
-              nei[start[m_edge2cell[i][1]]++] = m_edge2cell[i][0];
-          }
-      }
-  }
-
-  void node_to_node(Toplogy & top)
-  {
     auto NN = number_of_nodes();
     auto NE = number_of_edges();
-    auto & loc = top.locations();
-    loc.resize(NN+1, 0);
-    for(I i=0; i < NE; i++)
+    isBdNode.resize(NN);
+    for(int i = 0; i < NE; i++)
     {
-      loc[m_edge[i][0]+1] += 1;
-      loc[m_edge[i][1]+1] += 1;
-    }
-    for(I i=0; i < NN; i++)
-    {
-      loc[i+1] += loc[i];
-    }
-
-    auto & nei = top.neighbors();
-    nei.resize(loc[NN]);
-    std::vector<I> start(loc);
-    for(I i = 0; i < NE; i++)
-    {
-      nei[start[m_edge[i][0]]++] = m_edge[i][1];
-      nei[start[m_edge[i][1]]++] = m_edge[i][0];
+      if(edge_to_cell(i)[0]==edge_to_cell(i)[1])
+      {
+        isBdNode[edge(i)[0]] = true;
+        isBdNode[edge(i)[1]] = true;
+      }
     }
   }
 
-  void node_to_cell(Toplogy & top)
+  void cell_to_vertex(int i, int j)
   {
-    auto NN = number_of_nodes();
-    auto NC = number_of_cells();
+    int idx[3] = {0, (p+1)*(p+2)/2 - p -1, (p+1)*(p+2)/2 -1};
+    return m_cell[i][idx[j]];
+  }
 
-    auto & loc = top.locations();
-    loc.resize(NN+1, 0);
-    for(I i=0; i < NC; i++)
-    {
-      for(auto v : m_cell[i])
-        loc[v+1] += 1;
-    }
-    for(I i=0; i < NN; i++)
-    {
-      loc[i+1] += loc[i];
-    }
+  void edge_to_vertex(int i, int j)
+  {
+    int idx[2] = {0, p};
+    return m_edge[i][idx[j]];
+  }
 
-    auto & nei = top.neighbors();
-    auto & locid = top.local_indices();
-    nei.resize(loc[NN]);
-    locid.resize(loc[NN]);
-    std::vector<I> start(loc);
-    for(I i = 0; i < NC; i++)
-    {
-      for(int j = 0; j < 3; j++)
-      {
-        auto v = m_cell[i][j];
-        locid[start[v]] = j;
-        nei[start[v]++] = i;
-      }
-    }
+  void cell_to_vertex(int i, std::array<int, 3> & c2v)
+  {
+    c2v[0] = m_cell[i][0];
+    c2v[1] = m_cell[i][(p+1)*(p+2)/2 - p - 1];
+    c2v[2] = m_cell[i][(p+1)*(p+2)/2 - 1];
+  }
+
+  void edge_to_vertex(int i, std::array<int, 2> & e2v)
+  {
+    e2v[0] = m_edge[i][0];
+    e2v[1] = m_edge[i][p];
+  }
+
+  /**
+   * \brief 判断单元 i 的边的局部方向是否与全局方向相同
+   */
+  void cell_to_edge_sign(int i, std::array<double, 3> & flag)
+  {
+    int NCN = number_of_nodes_of_each_cell();
+    auto & c2e = cell_to_edge(i);
+    flag[0] = m_edge[c2e[0]][0] == m_cell[NCN-p-1]; 
+    flag[1] = m_edge[c2e[1]][0] == m_cell[NCN-1]; 
+    flag[2] = m_edge[c2e[2]][0] == m_cell[0]; 
   }
 
   NodeIterator node_begin()
@@ -428,7 +622,6 @@ public:
   {
     return m_cell.end();
   }
-
 
   std::vector<Node> & nodes()
   {
@@ -468,149 +661,6 @@ public:
   Cell2edge & cell_to_edge(const I i)
   {
     return m_cell2edge[i];
-  }
-
-  NodeIntData & get_node_int_data()
-  {
-    return m_nodeintdata;
-  }
-
-  NodeDoubleData & get_node_double_data()
-  {
-    return m_nodedoubledata;
-  }
- 
-  F cell_measure(const I i)
-  {//TODO: 需要考虑 inline 函数吗?
-    auto & c = m_cell[i];
-    auto v1 = m_node[c[1]] - m_node[c[0]];
-    auto v2 = m_node[c[2]] - m_node[c[0]];
-    return 0.5*cross(v1, v2);
-  }
-
-  void cell_measure(std::vector<F> & measure)
-  {
-    auto NC = number_of_cells();
-    measure.resize(NC);
-    for(I i = 0; i < NC; i++)
-        measure[i] = cell_measure(i);
-  }
-
-  void cell_size(std::vector<F> & cellsize)
-  {
-    auto NC = number_of_cells();
-    cellsize.resize(NC);
-    for(I i = 0; i < NC; i++)
-        cellsize[i] = std::sqrt(cell_measure(i));
-  }
-
-  F cell_size(I cidx)
-  {
-    return std::sqrt(cell_measure(cidx));
-  }
-
-  Node edge_barycenter(const I i)
-  {
-    auto & e = m_edge[i];
-    F x = (m_node[e[0]][0] + m_node[e[1]][0])/2.0;
-    F y = (m_node[e[0]][1] + m_node[e[1]][1])/2.0;
-    return Node(x, y);
-  }
-
-  void edge_barycenter(const I i, Node & node)
-  {
-    auto & e = m_edge[i];
-    for(int i = 0; i < geo_dimension(); i++)
-      node[i] = (m_node[e[0]][i] + m_node[e[1]][i])/2.0;
-  }
-
-  void edge_barycenter(std::vector<Node> & edgebarycenter)
-  {
-    int NE = number_of_edges();
-    edgebarycenter.resize(NE);
-    for(int i = 0; i < NE; i++)
-      edge_barycenter(i, edgebarycenter[i]);
-  }
-
-
-  void cell_barycenter(const I i, Node & node)
-  {
-    auto & c = m_cell[i];
-    for(int i = 0; i < geo_dimension(); i++)
-      node[i] = (m_node[c[0]][i] + m_node[c[1]][i] + m_node[c[2]][i])/3.0;
-  }
-
-  void cell_barycenter(std::vector<Node> & cellbarycenter)
-  {
-    int NC = number_of_cells();
-    cellbarycenter.resize(NC);
-    for(int i = 0; i < NC; i++)
-      cell_barycenter(i, cellbarycenter[i]);
-  }
-
-  Vector edge_normal(const I & i)
-  {
-    auto v = edge_tangent(i);
-    return Vector(v[1], -v[0]);
-  }
-
-  Vector edge_tangent(const I & i)
-  {
-    auto e = m_edge[i];
-    auto v = m_node[e[1]] - m_node[e[0]];
-    return v/std::sqrt(v.squared_length());
-  }
-
-  F edge_measure(const I i)
-  {
-    auto & e = m_edge[i];
-    auto v = m_node[e[1]] - m_node[e[0]];
-    return std::sqrt(v.squared_length());
-  }
-
-  void edge_measure(std::vector<F> & measure)
-  {
-    auto NE = number_of_edges();
-    measure.resize(NE);
-    for(I i = 0; i < NE; i++)
-      measure[i] = edge_measure(i);
-  }
-
-  F face_measure(const I i)
-  {
-    auto & e = m_edge[i];
-    auto v = m_node[e[1]] - m_node[e[0]];
-    return std::sqrt(v.squared_length());
-  }
-
-  void face_measure(std::vector<F> & measure)
-  {
-    auto NE = number_of_edges();
-    measure.resize(NE);
-    for(I i = 0; i < NE; i++)
-      measure[i] = edge_measure(i);
-  }
-
-  void cell_to_node(Toplogy & top)
-  {
-      auto NC = number_of_cells();
-      auto NN = number_of_nodes();
-      auto nn = number_of_vertices_of_each_cell();
-
-      top.init(2, 0, NC, NN);
-
-      auto & loc = top.locations();
-      loc.resize(NC+1, 0);
-      auto & nei = top.neighbors();
-      nei.resize(NC*nn);
-
-      for(I i = 0; i < NC; i++)
-      {
-          loc[i+1] = loc[i] + nn;
-          nei[nn*i] = m_cell[i][0];
-          nei[nn*i + 1] = m_cell[i][1];
-          nei[nn*i + 2] = m_cell[i][2];
-      }
   }
 
   void print()
@@ -669,6 +719,7 @@ private:
   }
 
 private:
+  int m_NN;
   int m_holes; // 网格中洞的个数
   int m_genus; // 网格表示曲面的亏格数
   std::vector<Node> m_node;
@@ -680,12 +731,19 @@ private:
 
 
 template<typename GK, typename NODE, typename VECTOR, int p>
+int LagrangeTriangleMesh<GK, NODE, VECTOR, p>::m_localedgeindex[3] = {
+    2, 1, 0
+};
+
+template<typename GK, typename NODE, typename VECTOR, int p>
 int LagrangeTriangleMesh<GK, NODE, VECTOR, p>::m_localedge[3][2] = {
     {0, 1}, {2, 0}, {1, 2}
 };
 
 template<typename GK, typename NODE, typename VECTOR, int p>
-int LagrangeTriangleMesh<GK, NODE, VECTOR, p>::m_vtkidx[3] = {0, 1, 2};
+int LagrangeTriangleMesh<GK, NODE, VECTOR, p>::m_vtkidx[10] = {
+  9, 0, 6, 5, 2, 1, 3, 7, 8, 4
+};
 
 template<typename GK, typename NODE, typename VECTOR, int p>
 int LagrangeTriangleMesh<GK, NODE, VECTOR, p>::m_num[3][3] = {

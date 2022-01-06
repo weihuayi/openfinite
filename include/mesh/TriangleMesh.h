@@ -6,6 +6,7 @@
 #include <map>
 #include <math.h>
 #include <algorithm>
+#include <iostream>
 
 #include "MeshToplogy.h"
 #include "NodeData.h"
@@ -730,7 +731,7 @@ private:
 
 template<typename GK, typename NODE, typename VECTOR>
 int TriangleMesh<GK, NODE, VECTOR>::m_localedge[3][2] = {
-    {0, 1}, {2, 0}, {1, 2}
+    {1, 2}, {2, 0}, {0, 1}
 };
 
 template<typename GK, typename NODE, typename VECTOR>
