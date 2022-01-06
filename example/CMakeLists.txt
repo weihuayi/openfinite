@@ -30,6 +30,16 @@ if(${VTK_FOUND})
         TARGETS pmesh_trimesh_generation 
         MODULES ${VTK_LIBRARIES}
     )
+
+    add_executable(functional_programming_fem_example
+        functional_programming_fem_example.cpp)
+    target_link_libraries(functional_programming_fem_example PRIVATE ${CGAL_LIBRARIES}
+        ${VTK_LIBRARIES} ${METIS_LIBRARY})
+    vtk_module_autoinit(
+        TARGETS functional_programming_fem_example 
+        MODULES ${VTK_LIBRARIES}
+    )
+
 endif()
 
 #if(${CGAL_FOUND} AND ${VTK_FOUND})
