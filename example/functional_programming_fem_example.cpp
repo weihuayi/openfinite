@@ -139,7 +139,55 @@ void boxmesh3d(
  */
 int main(int argc, char **argv)
 {
+  int n = 8;
+  std::array<double, 6> box = {0, 10, 0, 1, 0, 2};
+  std::vector<double> nodes;
+  std::vector<int> cells;
+  std::vector<int> nidxs; // 固定点
+  // 生成网格
+  boxmesh3d(box, 10*n, 1*n, 2*n, nodes, cells, nidxs);
+
+  TetMesh mesh;
+
+  // 设置网格节点
+  auto & m_nodes = mesh.nodes();
+  auto NN = (int)nodes.size()/3; // 这里要做强制转换
+  m_nodes.resize(NN);
+  int idx = 0;
+  for(auto & node:m_nodes)
+  {
+    node[0] = nodes[3*idx + 0];
+    node[1] = nodes[3*idx + 1];
+    node[2] = nodes[3*idx + 2];
+    idx++;
+  }
+
+  // 设置网格单元
+  auto & m_cells = mesh.cells();
+  auto NC = (int)cells.size()/4; // 这里要做强制转换
+  m_cells.resize(NC);
+  idx = 0;
+  for(auto & cell:m_cells)
+  {
+    cell[0] = cells[4*idx + 0];
+    cell[1] = cells[4*idx + 1];
+    cell[2] = cells[4*idx + 2];
+    cell[3] = cells[4*idx + 3];
+    idx++;
+  }
+
+  // 初始化网格拓扑关系
+  std::cout << "开始构建网格邻接关系信息......" << std::endl;
+  auto start = std::chrono::steady_clock::now();
+  mesh.init_top(); 
+  auto end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  std::cout << "邻接关系信息构建完成，花费时间: "
+       << elapsed_seconds.count() << " s\n" << std::endl;
+
   std::string fname = "TetMesh.vtu";
   VMWriter writer;
+  writer.set_mesh(mesh);
+  writer.write(fname);
   return 0;
 }
