@@ -38,7 +38,7 @@ struct Array
 
     ~Array()
     {
-        if(data != NULL) && (!fromother))
+        if(data != NULL) && (!fromother)
             delete[] data;
     }
 
