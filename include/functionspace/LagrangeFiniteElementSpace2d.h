@@ -202,7 +202,6 @@ public:
     return m_indexs;
   }
 
-
 private:
   int m_p;
   std::shared_ptr<Mesh> m_mesh;

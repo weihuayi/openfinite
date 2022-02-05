@@ -59,20 +59,24 @@ public:
     int ND = number_of_local_dofs()/2;
     m_dpoint.resize(ND*2);
     m_direction.resize(ND*2);
+    m_tan_flag.resize(ND*2, true);
 
     m_dpoint[0] = {1, 0, 0};
     m_dpoint[ND] = {1, 1, 0};
-
     m_direction[0] = Vector_2{0.0, -1.0};
     m_direction[ND] = Vector_2{-1.0, 0.0};
+    m_tan_flag[0] = false;
+    m_tan_flag[ND] = false;
 
     int num = 1, num0 = 0;
+    double sqrt2 = std::sqrt(2)/2;
     for(int i = 0; i < m_p-1; i++)
     {
       m_dpoint[num] = {1, 0, i+1};
       m_dpoint[num+ND] = {2, 0, num0++};
       m_direction[num] = Vector_2{0.0, -1.0};
       m_direction[num+ND] = Vector_2{1.0, 0.0};
+      m_tan_flag[num] = false;
       num++;
       for(int j = 0; j < i; j++)
       {
@@ -86,26 +90,32 @@ public:
       m_dpoint[num+ND] = {2, 0, num0++};
       m_direction[num] = Vector_2{-1.0, 0.0};
       m_direction[num+ND] = Vector_2{0.0, -1.0};
+      m_tan_flag[num] = false;
       num++;
     }
 
     m_dpoint[num] = {1, 0, m_p};
     m_dpoint[num+ND] = {1, 2, 0};
     m_direction[num] = Vector_2{0.0, -1.0};
-    m_direction[num+ND] = Vector_2{1.0, 1.0};
+    m_direction[num+ND] = Vector_2{sqrt2, sqrt2};
+    m_tan_flag[num] = false;
+    m_tan_flag[num+ND] = false;
     num++;
     for(int i = 1; i < m_p; i++)
     {
       m_dpoint[num] = {1, 2, i};
       m_dpoint[num+ND] = {2, 0, num0++};
-      m_direction[num] = Vector_2{1.0, 1.0};
-      m_direction[num+ND] = Vector_2{-1.0, 1.0};
+      m_direction[num] = Vector_2{sqrt2, sqrt2};
+      m_direction[num+ND] = Vector_2{-sqrt2, sqrt2};
+      m_tan_flag[num] = false;
       num++;
     }
     m_dpoint[num] = {1, 1, m_p};
     m_dpoint[num+ND] = {1, 2, m_p};
     m_direction[num] = Vector_2{-1.0, 0.0};
-    m_direction[num+ND] = Vector_2{1.0, 1.0};
+    m_direction[num+ND] = Vector_2{sqrt2, sqrt2};
+    m_tan_flag[num] = false;
+    m_tan_flag[num+ND] = false;
   }
 
   /**
@@ -221,9 +231,51 @@ public:
     }
   }
 
+  std::vector<int> inverse_dof(int i)
+  {
+    int ldof = number_of_local_dofs();
+
+    std::array<int, 3> c2v;
+    m_mesh->cell_to_vertex(i, c2v);
+    const auto & c2e = m_mesh->cell_to_edge(i);
+
+    auto & idx = m_mesh->m_localedgeindex; /**< 网格局部边的编号与递增序列编号的索引 TODO */
+    bool eflag[3]; /**< 三条边的方向是否正确 */
+    const auto & edge = m_mesh->edges();
+    eflag[0] = edge[c2e[idx[0]]][0] == c2v[0];
+    eflag[1] = edge[c2e[idx[1]]][0] == c2v[2];
+    eflag[2] = edge[c2e[idx[2]]][0] == c2v[1];
+    std::cout<< eflag[0] << " " << eflag[1] << " " << eflag[2] <<std::endl;
+
+    std::vector<int> inverse;
+    for(int j = 0; j < ldof; j++)/**< 循环所有自由度 */
+    {
+      if(m_dpoint[j][0]==1) /**< 1维 域点 */
+      {
+        if(!eflag[m_dpoint[j][1]])
+          inverse.push_back(j);
+      }
+    }
+    for(int i = 0; i < (int)inverse.size(); i++)
+    {
+      std::cout<< "iii" << inverse[i] <<std::endl;
+    }
+    return inverse;
+  }
+
   std::vector<Vector_2> & get_direction()
   {
     return m_direction;
+  }
+
+  std::vector<MultiIndex> & get_multindex()
+  {
+    return m_indexs;
+  }
+
+  std::vector<bool> & get_tan_flag()
+  {
+    return m_tan_flag;
   }
 
 private:
@@ -232,6 +284,7 @@ private:
   std::vector<std::array<int, 3>> m_dpoint;
   std::vector<MultiIndex> m_indexs;/**< 多重指标 */
   std::vector<Vector_2> m_direction; /** 标准单元中自由度的方向 */
+  std::vector<bool> m_tan_flag;
 };// end of BDMDof2d
 
 
@@ -258,7 +311,7 @@ public:
   typedef typename std::vector<std::map<I, F> > BSMatrix;
 
   typedef OF::Common::MultiIndex MultiIndex;
-  typedef FEMFunction<BDMSpace2d, double> Function;
+  typedef FEMFunction<BDMSpace2d, Vector> Function;
 
 public:
 
@@ -272,7 +325,6 @@ public:
     m_p(p), m_mesh(mesh), m_integrator(mesh, p+3)
   {
     m_dof = std::make_shared<BDMDof>(mesh, p);
-
   }
 
   template<class Container>
@@ -375,13 +427,16 @@ public:
     std::vector<std::array<double, 3>> B(m_p+1, {1, 1, 1});
     BMatrix(bc, B);
 
-    m_mesh->push_vector(c, bc, m_mesh->get_direction(), val);
+    m_mesh->push_frame(c, bc, m_dof->get_direction(), val, m_dof->get_tan_flag());
+    auto invdof = m_dof->inverse_dof(c);
+    for(auto didx : invdof)
+      val[didx] *=  -1;
 
     /** 计算基函数值 val */
     int hldof = m_dof->number_of_local_dofs()/2;
     for(int i = 0; i < hldof; i++)
     {
-      auto & midx = m_dof->get_multindex();
+      auto & midx = m_dof->get_multindex()[i];
       val[i] *= B[midx[0]][0]*B[midx[1]][1]*B[midx[2]][2];
       val[hldof+i] *=  B[midx[0]][0]*B[midx[1]][1]*B[midx[2]][2];
     }
@@ -466,7 +521,7 @@ public:
    * \brief 计算右端向量 \f[((f, v_0), (f, v_1), ..., (f, v_{n-1}) \f]
    */
   template<typename Container>
-  void source_vector(std::function<double(const Node &)> & f, Container & vec)
+  void source_vector(std::function<Vector(const Node &)> & f, Container & vec)
   {
     auto ldof = m_dof->number_of_local_dofs();
     auto gdof = m_dof->number_of_dofs();
@@ -480,16 +535,16 @@ public:
         (const std::array<double, 3>  & bc, Matrix & m)->void
       {
         auto po = m_mesh->bc_to_point(i, bc);
-        double fval = f(po);
+        Vector fval = f(po);
 
-        std::vector<double> pval;
+        std::vector<Vector> pval;
         basis(i, bc, pval);
 
         int N = pval.size();
         m.reshape(N, 1);
         for(int j = 0; j < N; j++)
         {
-          m[j][0] = fval*pval[j];
+          m[j][0] = dot(fval, pval[j]);
         }
       };
       Matrix mat;
@@ -507,7 +562,7 @@ public:
     return Function(this);
   }
 
-  double L2_error(Function & Fun, std::function<double(const Node &)> & fun)
+  double L2_error(Function & Fun, std::function<Vector(const Node &)> & fun)
   {
     double val = 0.0;
     int ldof = m_dof->number_of_local_dofs();
@@ -518,14 +573,15 @@ public:
         (const std::array<double, 3>  & bc)->double
       {
         auto po = m_mesh->bc_to_point(i, bc);
-        return std::pow(Fun(i, bc)-fun(po), 2);
+        return (Fun(i, bc)-fun(po)).squared_length();
       };
       val += m_integrator.integral(i, L2_err);
+      std::cout<< i << " : " << val <<std::endl;
     }
     return std::sqrt(val);
   }
 
-  Function inteprate(std::function<double(const Node &)> & f)
+  Function inteprate(std::function<Vector(const Node &)> & f)
   {
     Function F(this);
     auto & val = F.get_data();
@@ -542,14 +598,27 @@ public:
     for(int i = 0; i < NC; i++)
     {
       auto c2d = m_dof->cell_to_dof(i);
-      for(int j = 0; j < ldof; j++)
+      std::vector<Vector_2> v0(2);
+      std::vector<Vector> v1(2);
+      std::vector<bool> tf(2);
+      for(int j = 0; j < ldof/2; j++)
       {
         auto & idx = midxs[j];
         bc[0] = (double)idx[0]/m_p;
         bc[1] = (double)idx[1]/m_p;
         bc[2] = (double)idx[2]/m_p;
+        v0[0] = m_dof->get_direction()[j];
+        v0[1] = m_dof->get_direction()[j+ldof/2];
+        tf[0] = m_dof->get_tan_flag()[j];
+        tf[1] = m_dof->get_tan_flag()[j+ldof/2];
+
+        m_mesh->push_frame(i, bc, v0, v1, tf);
         auto po = m_mesh->bc_to_point(i, bc);
-        val[c2d[j]] = f(po);
+        auto fval = f(po);
+
+        double det = v1[0][0]*v1[1][1] - v1[0][1]*v1[1][0]; 
+        val[c2d[j]] = (v1[1][1]*fval[0] - v1[1][0]*fval[1])/det;
+        val[c2d[j+ldof/2]] = (-v1[0][1]*fval[0] + v1[0][0]*fval[1])/det;
       }
     }
     return F;

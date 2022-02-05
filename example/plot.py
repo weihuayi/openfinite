@@ -18,7 +18,7 @@ def Histogram_plot(b):
     axes = fig.gca()
     axes.bar(A[:-1], B, 0.018)
     #axes.ylim(0, np.max(B)*1.05)
-    plt.ylim(0, 0.1)
+    plt.ylim(0, 0.4)
     plt.xlabel("cell quality")
     plt.ylabel("Proportion")
     fig.savefig('%f.svg' %B[25], dpi=600)
