@@ -448,7 +448,6 @@ public:
     m_integrator.integral(i, phi_jk, stiff);
   }
 
-
   /**
    * \brief 空间的质量矩阵
    */
