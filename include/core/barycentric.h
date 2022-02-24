@@ -14,11 +14,15 @@
 namespace OF{
 namespace Core{
 
+/**
+ *  \brief 定义一个重心坐标类
+ *
+ */
 template<int N>
 class Barycentric
 {
 public:
-  std::array<double, N+1> data;
+  std::array<double, N+1> data; // N 是空间维数
   RArray2d<double> B;
   RArray2d<double> F;
 
@@ -32,6 +36,9 @@ public:
       data[i] = list[i];
   }
 
+  /**
+   * \brief 返回空间维数
+   */
   int dim()
   {
     return N;
@@ -58,6 +65,7 @@ public:
     int l = N+1;
     B.init(p+1, l);
     std::fill(B[0], B[0]+l, 1.0);
+    /** TODO:下面几个循环为什么不一起来做？*/
     for(int i = 0; i < p; i++)/**< 赋值 */
     {
       for(int j = 0; j < l; j++)

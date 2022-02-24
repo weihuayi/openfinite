@@ -37,12 +37,12 @@ public:
   // 空构造函数 
   Array1d() = default;
 
-  // 默认插入 m*n 个值 
+  // 默认插入 n 个值 
   Array1d(size_type n)
     : m_shape{n}, m_data(n)
   {}
 
-  // 复制初始化二维数组 m*n
+  // 复制初始化一维数组 n
   Array1d(size_type n, const_reference val)
     : m_shape{n}, m_data(n, val)
   {}
@@ -149,7 +149,7 @@ public:
 
 private:
 
-  Shape m_shape{0u, 0u};
+  Shape m_shape{0u};
   Data m_data{};
 };
 
@@ -178,14 +178,10 @@ bool operator != (Array1d<T> const &a, Array1d<T> const &b)
 template<class T>
 std::ostream& operator << (std::ostream & os, const Array1d<T> & a)
 {
-  std::cout << "Array1d("<<  a.shape(0) << "," << a.shape(1) << "):" << std::endl;
+  std::cout << "Array1d("<<  a.shape(0) << ", ):" << std::endl;
   for(typename Array1d<T>::size_type i = 0U; i < a.shape(0); i++)
   {
-      for(typename Array1d<T>::size_type j = 0U; j < a.shape(1); j++)
-      {
-          os << a(i, j) << " "; 
-      }
-      os << "\n";
+      os << a(i) << " "; 
   }
   os << "\n";
   return os;
