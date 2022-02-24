@@ -453,6 +453,65 @@ public:
   }
 
   Node bc_to_edge_point(); //TODO
+
+  void push_frame(int c, const std::array<double, 3> & bc, 
+      std::vector<Vector_2> & v0, 
+      std::vector<Vector> & v1,
+      std::vector<bool> & isTanVec)
+  {
+    auto GD = geo_dimension();
+    std::vector<std::array<double, 2>> J(GD, {0, 0});
+    std::vector<std::array<double, 2>> JD(GD, {0, 0});
+    jacobi_matrix(c, bc, J);
+    v1.resize(v0.size());
+
+    //获取推前矩阵
+    if(GD == 2)/**< 推前矩阵为 (J^T)^{-1} */
+    {
+      double det_J = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+      JD[0][0] = J[1][1]/det_J;
+      JD[0][1] = - J[1][0]/det_J;
+      JD[1][0] = - J[0][1]/det_J;
+      JD[1][1] = J[0][0]/det_J;
+    }
+    else/**< 推前矩阵为 J(J^T J)^{-1} */
+    {
+      double G[3] = {0, 0, 0};
+      for(int i = 0; i < GD; i++)
+      {
+        G[0] += J[i][0]*J[i][0];
+        G[1] += J[i][1]*J[i][0];
+        G[2] += J[i][1]*J[i][1];
+      }
+      double det_G = G[0]*G[2] - G[1]*G[1];
+      for(int i = 0; i < GD; i++)
+      {
+        double a = (J[i][0]*G[2] - J[i][1]*G[1])/det_G;
+        double b = (-J[i][0]*G[1] + J[i][1]*G[0])/det_G;
+        JD[i][0] = a;
+        JD[i][1] = b;
+      }/**< 获得推前矩阵 */
+    }
+
+    for(int i = 0; i < (int)v0.size(); i++)
+    {
+      if(isTanVec[i])
+      {
+        for(int j = 0; j < GD; j++)
+        {
+          v1[i][j] = J[j][0]*v0[i][0] + J[j][1]*v0[i][1];
+        }
+      }
+      else
+      {
+        for(int j = 0; j < GD; j++)
+        {
+          v1[i][j] = JD[j][0]*v0[i][0] + JD[j][1]*v0[i][1];
+        }
+      }
+      v1[i] /= std::sqrt(v1[i].squared_length());
+    }
+  }
   
   void push_dual_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
   {
@@ -497,16 +556,17 @@ public:
     }
   }
 
-  void push_vector(int c, const std::array<double, 3> & bc, std::vector<Vector_2> & v0, std::vector<Vector> & v1)
+  void push_vector(int c, const std::array<double, 3> & bc, const std::vector<Vector_2> & v0, std::vector<Vector> & v1)
   {
-    auto J = jacobi_matrix(c, bc);
-    int GD = geo_dimension();
+    auto GD = geo_dimension();
+    std::vector<std::array<double, 2>> J(GD, {0, 0});
+    jacobi_matrix(c, bc, J);
     v1.resize(v0.size());
     for(int i = 0; i < (int)v0.size(); i++)
     {
       for(int j = 0; j < GD; j++)
       {
-        v1[i][j] = J[j][0]*v0[i][0] + J[j][1]*v0[i][0];
+        v1[i][j] = J[j][0]*v0[i][0] + J[j][1]*v0[i][1];
       }
     }
   }

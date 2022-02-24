@@ -48,7 +48,7 @@ void test_basis(int p=1)
   cells[1] = Cell({0, 2, 3});
   tmesh->init_top();
 
-  //tmesh->uniform_refine(1);
+  tmesh->uniform_refine(1);
   int NE = tmesh->number_of_edges();
   for(int i = 0; i < NE; i++)
     std::cout<< i << " : [" << tmesh->edge(i)[0] << ", " << tmesh->edge(i)[1] << "]" <<std::endl;
@@ -76,15 +76,66 @@ void test_basis(int p=1)
   for(int i = 0; i < (int)dir.size(); i++)
     std::cout<< i << " : " << dir[i] <<std::endl; 
 
-  /*
+  const auto & tan = dof->get_tan_flag();
+  for(int i = 0; i < (int)tan.size(); i++)
+    std::cout<< i << " : " << tan[i] <<std::endl; 
+
   std::array<double, 3> bc{0.3, 0.3, 0.4};
+  //std::array<double, 3> bc{1, 0, 0};
 
   std::cout<< "开始测试 space basis" << std::endl;
-  std::vector<double> val;
+  std::vector<Vector> val;
   space->basis(0, bc, val);
   for(unsigned int i = 0; i < val.size(); i++)
   {
-    std::cout<< "val[" << i << "] = " << val[i] <<std::endl;
+    std::cout<< "0 val[" << i << "] = " << val[i] <<std::endl;
+  }
+  space->basis(1, bc, val);
+  for(unsigned int i = 0; i < val.size(); i++)
+  {
+    std::cout<< "1 val[" << i << "] = " << val[i] <<std::endl;
+  }
+
+  /*
+  std::cout<< "开始测试 插值" << std::endl;
+  std::function<Vector(const Node &)> test_f = [] (const Node & p)->Vector
+  {
+    //double a = std::pow(p[0], 2)*p[1]+20*std::sin(p[0]+p[1]);
+    //double b = std::pow(p[0], 2)*p[1]+20*std::sin(p[0]+p[1]);
+    double b = -p[0]*p[0];
+    double a = -p[1]*p[1];
+    return Vector(a, b);
+  };
+
+  tmesh->print();
+  for(int i = 0; i < 1; i++)
+  {
+    //tmesh->uniform_refine();
+    mesh = std::make_shared<Mesh>(tmesh);
+    space = std::make_shared<Space>(mesh, p);
+    auto intep_f = space->inteprate(test_f);
+    int gdof = space->get_dof()->number_of_dofs();
+    for(int j = 0; j < gdof; j++)
+      std::cout<< j << " : " << intep_f[j] <<std::endl;
+    double val = space->L2_error(intep_f, test_f);
+    std::cout<< "加密次数: " << i << " 误差为: " << val <<std::endl;
+  }
+
+  std::cout<< "开始测试 space mass mairix" << std::endl;
+  BSMatrix mass;
+  space->mass_matrix(mass);
+  for(int i = 0; i < (int)mass.size(); i++)
+  {
+    for(const auto & pa : mass[i])
+      std::cout<<  "(" << i << ", " << pa.first << "):  " << pa.second <<std::endl;
+  }
+
+  std::cout<< "开始测试 space source vector" << std::endl;
+  std::vector<double> sou_vec;
+  space->source_vector(test_f, sou_vec);
+  for(int i = 0; i < (int)sou_vec.size(); i++)
+  {
+    std::cout<< "v[" << i << "] = " << sou_vec[i] <<std::endl;
   }
 
   std::cout<< "开始测试 space grad basis" << std::endl;
@@ -105,26 +156,7 @@ void test_basis(int p=1)
       std::cout<<  "(" << i << ", " << pa.first << "):  " << pa.second <<std::endl;
   }
 
-  std::cout<< "开始测试 space mass mairix" << std::endl;
-  BSMatrix mass;
-  space->mass_matrix(mass);
-  for(int i = 0; i < (int)mass.size(); i++)
-  {
-    for(const auto & pa : mass[i])
-      std::cout<<  "(" << i << ", " << pa.first << "):  " << pa.second <<std::endl;
-  }
 
-  std::cout<< "开始测试 space source vector" << std::endl;
-  std::vector<double> sou_vec;
-  std::function<double(const Node &)> F = [] (const Node & p)->double 
-  {
-    return std::pow(p[0], 2)*p[1];
-  };
-  space->source_vector(F, sou_vec);
-  for(int i = 0; i < (int)sou_vec.size(); i++)
-  {
-    std::cout<< "v[" << i << "] = " << sou_vec[i] <<std::endl;
-  }
 
   std::cout<< "开始测试 插值" << std::endl;
   std::function<double(const Node &)> test_f = [] (const Node & p)->double 

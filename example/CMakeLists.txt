@@ -82,6 +82,13 @@ if(${VTK_FOUND} AND ${MPI_FOUND})
         MODULES ${VTK_LIBRARIES}
     )
 
+    add_executable(parallel_tetmesh_optimization1 parallel_tetmesh_optimization1.cpp)
+    target_link_libraries(parallel_tetmesh_optimization1 PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS parallel_tetmesh_optimization1 
+        MODULES ${VTK_LIBRARIES}
+    )
+
     add_executable(parallel_quadmesh_optimization0 parallel_quadmesh_optimization0.cpp)
     target_link_libraries(parallel_quadmesh_optimization0 PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
     vtk_module_autoinit(
@@ -103,6 +110,13 @@ if(${VTK_FOUND} AND ${MPI_FOUND})
         MODULES ${VTK_LIBRARIES}
     )
 
+    add_executable(parallel_hexmesh_optimization1 parallel_hexmesh_optimization1.cpp)
+    target_link_libraries(parallel_hexmesh_optimization1 PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
+    vtk_module_autoinit(
+        TARGETS parallel_hexmesh_optimization1
+        MODULES ${VTK_LIBRARIES}
+    )
+
     add_executable(parallel_mesh_coloring parallel_mesh_coloring.cpp)
     target_link_libraries(parallel_mesh_coloring PRIVATE ${VTK_LIBRARIES} ${MPI_LIBRARIES})
     vtk_module_autoinit(
@@ -113,6 +127,12 @@ if(${VTK_FOUND} AND ${MPI_FOUND})
     target_link_libraries(Poisson PRIVATE ${VTK_LIBRARIES} Eigen3::Eigen)
     vtk_module_autoinit(
         TARGETS Poisson
+        MODULES ${VTK_LIBRARIES}
+    )
+    add_executable(PoissonWithMix PoissonWithMix.cpp )
+    target_link_libraries(PoissonWithMix PRIVATE ${VTK_LIBRARIES} Eigen3::Eigen)
+    vtk_module_autoinit(
+        TARGETS PoissonWithMix
         MODULES ${VTK_LIBRARIES}
     )
 

@@ -202,7 +202,6 @@ public:
     return m_indexs;
   }
 
-
 private:
   int m_p;
   std::shared_ptr<Mesh> m_mesh;
@@ -448,7 +447,6 @@ public:
     };
     m_integrator.integral(i, phi_jk, stiff);
   }
-
 
   /**
    * \brief 空间的质量矩阵
