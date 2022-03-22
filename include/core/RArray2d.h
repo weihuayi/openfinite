@@ -221,6 +221,7 @@ std::ostream& operator << (std::ostream & os, const RArray2d<T> & a)
   std::cout << "RArray2d("<<  a.shape(0) << "," << a.shape(1) << "):" << std::endl;
   for(typename RArray2d<T>::size_type i = 0U; i < a.shape(0); i++)
   {
+      os << i << " : "; 
       for(typename RArray2d<T>::size_type j = 0U; j < a.shape(1); j++)
       {
           os << a(i, j) << " "; 

@@ -45,8 +45,20 @@ add_test(Quadrature test_TriangleQuadrature)
 add_executable(test_TetrahedronQuadrature test_TetrahedronQuadrature.cpp)
 add_test(Quadrature test_TetrahedronQuadrature)
 
+add_executable(test_DofCore test_DofCore.cpp)
+add_test(FemSpace test_DofCore)
+
+add_executable(test_BDMdof test_BDMdof.cpp)
+add_test(FemSpace test_BDMdof)
+
+add_executable(test_NedelecDof test_NedelecDof.cpp)
+add_test(FemSpace test_NedelecDof)
+
 add_executable(test_TetrahedronMesh test_TetrahedronMesh.cpp)
 add_test(Mesh test_TetrahedronMesh)
+
+add_executable(test_TetrahedronMeshCore test_TetrahedronMeshCore.cpp)
+add_test(MeshCore test_TetrahedronMeshCore)
 
 add_executable(test_GaussLegendreQuadrature test_GaussLegendreQuadrature.cpp)
 add_test(Quadrature test_GaussLegendreQuadrature)

@@ -796,6 +796,15 @@ public:
     }
   }
 
+  void clear()
+  {
+    m_edge.clear();
+    m_face.clear();
+    m_cell2edge.clear();
+    m_face2cell.clear();
+    m_cell2face.clear();
+  }
+
   void print()
   {
       std::cout << "Nodes:" << std::endl;

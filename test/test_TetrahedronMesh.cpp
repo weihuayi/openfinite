@@ -3,7 +3,6 @@
 #include "core/femcore.h"
 #include "core/RArray2d.h"
 #include "core/TetrahedronQuadrature.h"
-//#include "core/TetrahedronMesh.h"
 #include "mesh/TetrahedronMesh.h"
 #include "core/barycentric.h"
 
@@ -12,7 +11,6 @@
 using namespace std::chrono;
 
 typedef OF::Geometry_kernel<double, int> GK;
-//typedef OF::Mesh::TetrahedronMesh<GK> TetMesh;
 
 typedef GK::Point_3 Node;
 typedef GK::Vector_3 Vector;
@@ -23,8 +21,6 @@ void cube_tetrahedron_mesh_RArray(Mesh & mesh)
 {
   auto & node = mesh.nodes();
   auto & cell = mesh.cells();
-  node.reserve(8, 3);
-  cell.reserve(6, 4);
 
   node.push_back({0.0, 0.0, 0.0});
   node.push_back({1.0, 0.0, 0.0});
@@ -43,7 +39,6 @@ void cube_tetrahedron_mesh_RArray(Mesh & mesh)
   cell.push_back({0, 2, 3, 6});
   mesh.init_top();
   mesh.print();
-  return;
 }
 
 void one_tetrahedron_mesh(TetMesh & mesh)
@@ -59,15 +54,16 @@ void one_tetrahedron_mesh(TetMesh & mesh)
   cell.push_back({0, 1, 2, 3});
   mesh.init_top();
   mesh.print();
-  return;
 }
 
 int main()
 {
   TetMesh mesh;
   one_tetrahedron_mesh(mesh);
+  mesh.uniform_refine(7);
+  mesh.clear();
   auto start = high_resolution_clock::now();
-  mesh.uniform_refine(6);
+  mesh.init_top();
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop - start);
   std::cout<< duration.count()/1000000.0 <<std::endl;

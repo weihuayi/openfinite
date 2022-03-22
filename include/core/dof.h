@@ -50,7 +50,7 @@ struct DofMap
     }
   }
 
-  int get_type(int * E0, int * E1)
+  int get_type(const int * E0, const int * E1) const 
   {
     int type[N+1] = {-1};
     for(int i = 0; i < N+1; i++)
@@ -130,12 +130,12 @@ public:
   {
     int NN = m_mesh->number_of_nodes();
     int edof = number_of_local_dofs(1);
-    dof[0] = m_mesh->edge(e, 0);
+    dof[0] = m_mesh->edge(e)[0];
 
-    for(int i = 1; i < edof-1; i++)
-      dof[i] = NN + e*(m_p-1) + i;
+    for(int i = 0; i < edof-2; i++)
+      dof[i+1] = NN + e*(m_p-1) + i;
 
-    dof[edof-1] = m_mesh->edge(e, 1);
+    dof[edof-1] = m_mesh->edge(e)[1];
   }
 
   void face_to_dof(int f, int * dof)
@@ -143,6 +143,7 @@ public:
     int NN = m_mesh->number_of_nodes();
     int NE = m_mesh->number_of_edges();
     int eidof = m_p-1, fidof = (m_p-1)*(m_p-2)/2;
+    int eldof = m_p+1;
 
     const int * face = m_mesh->face(f);
 
@@ -151,17 +152,17 @@ public:
     const auto & bdof = m_facedof.bdof;
     const auto & bd = m_facedof.boundary; 
 
-    int edof[eidof];
+    int edof[eldof];
     for(int i = 0; i < 3; i++)
     {
       int e = m_mesh->face_to_edge(f, i);
       edge_to_dof(e, edof);
 
       int edge[2] = {face[bd(i, 0)], face[bd(i, 1)]};
-      int t = em.type(edge, m_mesh->edge(e));
-      int * idx = em.index[t];
+      const int t = em.get_type(edge, m_mesh->edge(e));
+      const int * idx = em.index[t];
 
-      for(int j = 0; j < eidof; j++)
+      for(int j = 0; j < eldof; j++)
         dof[bdof(i, j)] = edof[idx[j]];
     }
     for(int i = 0; i < (int)idof.size(); i++)
@@ -174,6 +175,7 @@ public:
     int NE = m_mesh->number_of_edges();
     int NF = m_mesh->number_of_faces();
     int eidof = m_p-1, fidof = eidof*(m_p-2)/2, cidof = fidof*(m_p-3)/3;
+    int fldof = number_of_local_dofs(2);
 
     const int * cell = m_mesh->cell(c);
 
@@ -182,18 +184,20 @@ public:
     const auto & bdof = m_celldof.bdof;
     const auto & bd = m_celldof.boundary; 
 
-    int fdof[fidof];
+    int fdof[fldof];
     for(int i = 0; i < 4; i++)
     {
-      int f = m_mesh->cell_to_face(c, i);
+      int f = m_mesh->cell_to_face(c)[i];
       face_to_dof(f, fdof);
 
       int face[3] = {cell[bd(i, 0)], cell[bd(i, 1)], cell[bd(i, 2)]};
-      int t = em.type(face, m_mesh->face(f));
-      int * idx = em.index[t];
+      int t = em.get_type(face, m_mesh->face(f));
+      const int * idx = em.index[t];
 
-      for(int j = 0; j < fidof; j++)
+      for(int j = 0; j < fldof; j++)
+      {
         dof[bdof(i, j)] = fdof[idx[j]];
+      }
     }
     for(int i = 0; i < (int)idof.size(); i++)
       dof[idof[i]] = NN + NE*eidof + NF*fidof + c*cidof + i;
@@ -202,6 +206,16 @@ public:
   int number_of_local_dofs(int d = 3)
   {
     return C(d+m_p, d);
+  }
+
+  int number_of_dofs()
+  {
+    int NN = m_mesh->number_of_nodes();
+    int NE = m_mesh->number_of_edges();
+    int NF = m_mesh->number_of_faces();
+    int NC = m_mesh->number_of_cells();
+    int eidof = m_p-1, fidof = eidof*(m_p-2)/2, cidof = fidof*(m_p-3)/3;
+    return NN + NE*eidof + NF*fidof + NC*cidof;
   }
 
 private:
