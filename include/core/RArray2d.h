@@ -58,11 +58,11 @@ public:
     }
   }
 
-  void init(const size_type m, const size_type n)
+  void init(const size_type m, const size_type n, T val=0)
   {
     m_shape[0] = m;
     m_shape[1] = n;
-    m_data.resize(m*n, 0.0);
+    m_data.resize(m*n, val);
   }
 
   // 1 维迭代子 

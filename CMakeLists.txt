@@ -134,6 +134,7 @@ endif()
 
 # OpenBLAS 
 set(OpenBLAS_DIR $ENV{HOME}/.local/openblas)
+# set(OpenBLAS_DIR  /usr/include/)
 find_package(OpenBLAS)
 if(NOT ${OpenBLAS_FOUND})
     message("OpenOpenBLAS not found")
