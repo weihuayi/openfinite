@@ -11,7 +11,7 @@ namespace Mesh {
 
 struct ShardEntity
 {
-  int id; /**< 编号实体 */
+  int id; /**< 实体编号 */
   int master; /**< 主进程 */
   std::set<std::pair<int, int> > pset; /** (进程集, 在该进程中的编号) */
 
@@ -24,15 +24,6 @@ class ParallelMesh: public Mesh
 public:
   typedef typename GK::Int I;
   typedef typename GK::Float F;
-  typedef typename Mesh::Node Node;
-  typedef typename Mesh::Edge Edge;
-  typedef typename Mesh::Face Face;
-  typedef typename Mesh::Cell Cell;
-
-  typedef typename Mesh::Face2cell Face2cell;
-  typedef typename Mesh::Cell2face Cell2face;
-  typedef typename Mesh::Cell2edge Cell2edge;
-
   typedef typename Mesh::Toplogy Toplogy;
 
   typedef typename Mesh::NodeIterator NodeIterator;

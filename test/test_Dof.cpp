@@ -50,13 +50,13 @@ int main(int argc, char ** argv)
   {
     std::vector<int> c2d;
     dofmang.cell_to_dof(i, c2d);
-    //std::cout<< "c2d[" << i << "] = " <<std::endl;
-    //std::cout<< "[";
-    //for(auto d:c2d)
-    //{
-      //std::cout<< d << " ";
-    //}
-    //std::cout<< "]" << std::endl;
+    std::cout<< "c2d[" << i << "] = " <<std::endl;
+    std::cout<< "[";
+    for(auto d:c2d)
+    {
+      std::cout<< d << " ";
+    }
+    std::cout<< "]" << std::endl;
   }
   clock_t e = clock();
   std::cout<< "time = " <<(double)(e-s)/CLOCKS_PER_SEC <<std::endl;

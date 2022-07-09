@@ -26,6 +26,9 @@ add_test(TriangleMeshQuadrature test_TriangleMeshQuadrature)
 add_executable(test_array test_array.cpp)
 add_test(array test_array)
 
+add_executable(test_Bernstein test_Bernstein.cpp)
+add_test(Bernstein test_Bernstein)
+
 add_executable(test_Matrix test_Matrix.cpp)
 add_test(Algebra test_Matrix)
 
@@ -45,8 +48,20 @@ add_test(Quadrature test_TriangleQuadrature)
 add_executable(test_TetrahedronQuadrature test_TetrahedronQuadrature.cpp)
 add_test(Quadrature test_TetrahedronQuadrature)
 
+add_executable(test_DofCore test_DofCore.cpp)
+add_test(FemSpace test_DofCore)
+
+add_executable(test_BDMdof test_BDMdof.cpp)
+add_test(FemSpace test_BDMdof)
+
+add_executable(test_NedelecDof test_NedelecDof.cpp)
+add_test(FemSpace test_NedelecDof)
+
 add_executable(test_TetrahedronMesh test_TetrahedronMesh.cpp)
 add_test(Mesh test_TetrahedronMesh)
+
+add_executable(test_TetrahedronMeshCore test_TetrahedronMeshCore.cpp)
+add_test(MeshCore test_TetrahedronMeshCore)
 
 add_executable(test_GaussLegendreQuadrature test_GaussLegendreQuadrature.cpp)
 add_test(Quadrature test_GaussLegendreQuadrature)
@@ -57,11 +72,15 @@ add_test(PIP test_point_in_polygon)
 add_executable(test_Point_2 test_Point_2.cpp)
 add_test(Geometry test_Point_2)
 
+add_executable(test_CuthillMckee test_CuthillMckee.cpp)
+add_test(Geometry test_CuthillMckee)
+
 add_executable(test_multiindex test_multiindex.cpp)
 add_test(Geometry test_multiindex)
 
 add_executable(test_LagrangeFESpace3d test_LagrangeFESpace3d.cpp)
 add_test(Geometry test_LagrangeFESpace3d)
+
 
 if(${OpenBLAS_FOUND})
     add_executable(test_NedecFEM test_NedecFEM.cpp)

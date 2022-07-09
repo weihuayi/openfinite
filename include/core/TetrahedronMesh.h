@@ -50,13 +50,13 @@ public:
   typedef typename RArray2d<I>::iterator EdgeIterator;
   typedef typename RArray2d<F>::iterator NodeIterator;
 
-  static int m_localedge[6][2];
-  static int m_localface[4][3];
-  static int m_localface2edge[4][3];
-  static int m_refine[3][6];
-  static int m_index[12][4];
-  static int m_vtkidx[4];
-  static int m_num[4][4];
+  static int localedge[6][2];
+  static int localface[4][3];
+  static int localface2edge[4][3];
+  static int refine[3][6];
+  static int index[12][4];
+  static int vtkidx[4];
+  static int num[4][4];
 
 public:
 
@@ -114,12 +114,12 @@ public:
 
   int* vtk_read_cell_index()
   {
-    return m_vtkidx;
+    return vtkidx;
   }
 
   int* vtk_write_cell_index()
   {
-    return m_vtkidx;
+    return vtkidx;
   }
 
   I vtk_cell_type(I TD=3)
@@ -146,14 +146,14 @@ public:
     {
       for(int j = 0; j < 4; j++)
       {
-        allFace(i*4+j, 0) = m_cell(i, m_localface[j][0]); 
-        allFace(i*4+j, 1) = m_cell(i, m_localface[j][1]); 
-        allFace(i*4+j, 2) = m_cell(i, m_localface[j][2]); 
+        allFace(i*4+j, 0) = m_cell(i, localface[j][0]); 
+        allFace(i*4+j, 1) = m_cell(i, localface[j][1]); 
+        allFace(i*4+j, 2) = m_cell(i, localface[j][2]); 
       }
       for(int j = 0; j < 6; j++)
       {
-        allEdge(i*6+j, 0) = m_cell(i, m_localedge[j][0]);
-        allEdge(i*6+j, 1) = m_cell(i, m_localedge[j][1]);
+        allEdge(i*6+j, 0) = m_cell(i, localedge[j][0]);
+        allEdge(i*6+j, 1) = m_cell(i, localedge[j][1]);
       }
     }
 
@@ -300,6 +300,25 @@ public:
       return m_edge;
   }
 
+  F * node(const I i)
+  {
+      return m_node[i];
+  }
+
+  I * edge(const I i)
+  {
+      return m_edge[i];
+  }
+
+  I * face(const I i)
+  {
+      return m_face[i];
+  }
+
+  I * cell(const I i)
+  {
+      return m_cell[i];
+  }
 
   I * face_to_cell(const I i)
   {
@@ -316,7 +335,96 @@ public:
       return m_cell2edge[i];
   }
 
+  I face_to_edge(const int & i, const int & j)
+  {
+    return m_cell2edge(m_face2cell(i, 0), localface2edge[m_face2cell(i, 2)][j]);
+  }
+
+  template<typename Barycentric>
+  void bc_to_point(int c, Barycentric & bc, double * point)
+  {
+    std::fill(point, point+3, 0.0);
+    for(int i = 0; i < 4; i++)
+    {
+      for(int j = 0; j < 3; j++)
+      {
+        point[j] += bc[i]*m_node(m_cell(c, i), j);
+      }
+    }
+  }
+
   // 实体测度 
+  double cell_volume(int c)
+  {
+    RArray2d<double> v(3, 3);
+    double cro[3];
+    for(int i = 0; i < 3; i++)
+    {
+      for(int j = 0; j < 3; j++)
+        v(i, j) = m_node(m_cell(c, i+1), j) - m_node(m_cell(c, 0), j);
+    }
+    Core::cross(v[0], v[1], cro);
+    return Core::dot(cro, v[2])/6.0;
+  }
+
+  double grad_lambda(int c, RArray2d<double> & Dlambda)
+  {
+    RArray2d<double> v(2, 3); /**< 每个面上的两个向量*/
+    Dlambda.init(4, 3);
+    double vol = cell_volume(c);
+    for(int i = 0; i < 4; i++)
+    {
+      int j = localface[i][0], k = localface[i][1], m = localface[i][2];
+      for(int l = 0; l < 3; l++)
+      {
+        v(0, l) = m_node(m_cell(c, k), l) - m_node(m_cell(c, j), l);
+        v(1, l) = m_node(m_cell(c, m), l) - m_node(m_cell(c, j), l);
+      }
+      OF::Core::cross(v[1], v[0], Dlambda[i]);
+      for(int l = 0; l < 3; l++)
+        Dlambda(i, l) /= 6*vol;
+    }
+    return vol;
+  }
+
+  void face_normal(int f, double * v)
+  {
+    double e0[3] = {0};
+    double e1[3] = {0};
+    for(int i = 0; i < 3; i++)
+    {
+      e0[i] = m_node(m_face(f, 1), i) - m_node(m_face(f, 0), i);
+      e1[i] = m_node(m_face(f, 2), i) - m_node(m_face(f, 0), i);
+    }
+    OF::Core::cross(e0, e1, v);
+    double val = std::sqrt(OF::Core::dot(v, v));
+    for(int i = 0; i < 3; i++)
+      v[i] /= val;
+  }
+
+  void edge_tangent(int e, double * v)
+  {
+    for(int i = 0; i < 3; i++)
+      v[i] = m_node(m_edge(e, 1), i) - m_node(m_edge(e, 0), i);
+    double val = std::sqrt(OF::Core::dot(v, v));
+    for(int i = 0; i < 3; i++)
+      v[i] /= val;
+  }
+  
+  void cell_normal(int c, RArray2d<double> & v)
+  {
+    v.init(4, 3);
+    for(int i = 0; i < 4; i++)
+      face_normal(m_cell2face(c, i), v[i]);
+  }
+
+  void cell_tangent(int c, RArray2d<double> & v)
+  {
+    v.init(6, 3);
+    for(int i = 0; i < 6; i++)
+      edge_tangent(m_cell2edge(c, i), v[i]);
+  }
+
   /**
   F edge_measure(const I i)
   {
@@ -446,25 +554,25 @@ public:
           OF::Core::dot(v[2], v[2], 3)};
         auto idx = std::distance(tem, std::min_element(tem, tem+3));
 
-        m_cell(4*NC + j, 0) = m_cell2edge(j, m_refine[idx][0]) + NN; 
-        m_cell(4*NC + j, 1) = m_cell2edge(j, m_refine[idx][1]) + NN;
-        m_cell(4*NC + j, 2) = m_cell2edge(j, m_refine[idx][4]) + NN;
-        m_cell(4*NC + j, 3) = m_cell2edge(j, m_refine[idx][5]) + NN;
-                                                             
-        m_cell(5*NC + j, 0) = m_cell2edge(j, m_refine[idx][1]) + NN; 
-        m_cell(5*NC + j, 1) = m_cell2edge(j, m_refine[idx][2]) + NN;
-        m_cell(5*NC + j, 2) = m_cell2edge(j, m_refine[idx][4]) + NN;
-        m_cell(5*NC + j, 3) = m_cell2edge(j, m_refine[idx][5]) + NN;
-                                                             
-        m_cell(6*NC + j, 0) = m_cell2edge(j, m_refine[idx][2]) + NN; 
-        m_cell(6*NC + j, 1) = m_cell2edge(j, m_refine[idx][3]) + NN;
-        m_cell(6*NC + j, 2) = m_cell2edge(j, m_refine[idx][4]) + NN;
-        m_cell(6*NC + j, 3) = m_cell2edge(j, m_refine[idx][5]) + NN;
-                                                             
-        m_cell(7*NC + j, 0) = m_cell2edge(j, m_refine[idx][3]) + NN; 
-        m_cell(7*NC + j, 1) = m_cell2edge(j, m_refine[idx][0]) + NN;
-        m_cell(7*NC + j, 2) = m_cell2edge(j, m_refine[idx][4]) + NN;
-        m_cell(7*NC + j, 3) = m_cell2edge(j, m_refine[idx][5]) + NN;
+        m_cell(4*NC + j, 0) = m_cell2edge(j, refine[idx][0]) + NN; 
+        m_cell(4*NC + j, 1) = m_cell2edge(j, refine[idx][1]) + NN;
+        m_cell(4*NC + j, 2) = m_cell2edge(j, refine[idx][4]) + NN;
+        m_cell(4*NC + j, 3) = m_cell2edge(j, refine[idx][5]) + NN;
+                                                           
+        m_cell(5*NC + j, 0) = m_cell2edge(j, refine[idx][1]) + NN; 
+        m_cell(5*NC + j, 1) = m_cell2edge(j, refine[idx][2]) + NN;
+        m_cell(5*NC + j, 2) = m_cell2edge(j, refine[idx][4]) + NN;
+        m_cell(5*NC + j, 3) = m_cell2edge(j, refine[idx][5]) + NN;
+                                                           
+        m_cell(6*NC + j, 0) = m_cell2edge(j, refine[idx][2]) + NN; 
+        m_cell(6*NC + j, 1) = m_cell2edge(j, refine[idx][3]) + NN;
+        m_cell(6*NC + j, 2) = m_cell2edge(j, refine[idx][4]) + NN;
+        m_cell(6*NC + j, 3) = m_cell2edge(j, refine[idx][5]) + NN;
+                                                           
+        m_cell(7*NC + j, 0) = m_cell2edge(j, refine[idx][3]) + NN; 
+        m_cell(7*NC + j, 1) = m_cell2edge(j, refine[idx][0]) + NN;
+        m_cell(7*NC + j, 2) = m_cell2edge(j, refine[idx][4]) + NN;
+        m_cell(7*NC + j, 3) = m_cell2edge(j, refine[idx][5]) + NN;
       }
 
       m_edge.clear();
@@ -474,6 +582,15 @@ public:
       m_cell2face.clear();
       init_top(); 
     }
+  }
+
+  void clear()
+  {
+    m_edge.clear();
+    m_face.clear();
+    m_cell2edge.clear();
+    m_face2cell.clear();
+    m_cell2face.clear();
   }
 
   void is_boundary_face(std::vector<bool> & isBdFace)
@@ -655,27 +772,27 @@ private:
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_localedge[6][2] = {
+int TetrahedronMesh<GK>::localedge[6][2] = {
     {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_localface[4][3] = {
+int TetrahedronMesh<GK>::localface[4][3] = {
     {1, 2, 3}, {0, 3, 2}, {0, 1, 3}, {0, 2, 1}
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_localface2edge[4][3] = {
+int TetrahedronMesh<GK>::localface2edge[4][3] = {
     {5, 4, 3}, {5, 1, 2}, {4, 2, 0}, {3, 0, 1}
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_refine[3][6] = {
+int TetrahedronMesh<GK>::refine[3][6] = {
     {1, 3, 4, 2, 5, 0}, {0, 2, 5, 3, 4, 1}, {0, 4, 5, 1, 3, 2}
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_index[12][4] = {
+int TetrahedronMesh<GK>::index[12][4] = {
     {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2},
     {1, 2, 0, 3}, {1, 0, 3, 2}, {1, 3, 2, 0},
     {2, 0, 1, 3}, {2, 1, 3, 0}, {2, 3, 0, 1},
@@ -683,10 +800,10 @@ int TetrahedronMesh<GK>::m_index[12][4] = {
 };
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_vtkidx[4] = {0, 1, 2, 3};
+int TetrahedronMesh<GK>::vtkidx[4] = {0, 1, 2, 3};
 
 template<typename GK>
-int TetrahedronMesh<GK>::m_num[4][4] = {
+int TetrahedronMesh<GK>::num[4][4] = {
     {0, 1, 2, 3}, {1, 0, 3, 2}, {2, 0, 1, 3}, {3, 0, 2, 1}
 };
 

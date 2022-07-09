@@ -131,6 +131,32 @@ void LagrangeBasis(const RArray2d<double> & B, const RArray2d<int> & multiindex,
 }
 
 /**
+ * \brief 拉格朗日基函数在多个中心坐标处的值
+ * return val : shape(ldof, np), val(i, j) 表示第 i 个基函数在第 j
+ * 个重心坐标处的值.
+ */
+template<typename Barycentric>
+void LagrangeBasis(const std::vector<Barycentric> & bcs, 
+    const RArray2d<int> & multiindex, 
+    RArray2d<double> & val)
+{
+  int l = multiindex.shape(1);
+  int ldof = multiindex.shape(0);
+  int nq = bcs.size();
+  val.init(ldof, nq);
+  for(int k = 0; k < nq; k++)
+  {
+    const auto & B = bcs[k].B;
+    for(int i = 0; i < ldof; i++)
+    {
+      val(i, k) = B(multiindex(i, 0), 0);
+      for(int j = 1; j < l; j++)
+        val(i, k) *= B(multiindex(i, j), j);
+    }
+  }
+}
+
+/**
  * \brief 单元上基函数梯度在中心坐标 lambda 处的函数值, 其中 B, F 是 lambda
  * 有关的矩阵
  */
@@ -205,6 +231,27 @@ void stiff_matrix(const std::vector<Barycentric> & bcs, const std::vector<double
       }
     }
   }
+}
+
+/**
+ * \brief 单元上的右端向量
+ */
+void source_vector(const std::vector<double> & ws, int ldof, 
+    const RArray2d<double> & phi,
+    std::vector<double> fval, double J, std::vector<double> & val)
+{
+  int np = ws.size();
+  val.resize(ldof, 0.0);
+
+  for(int j = 0; j < np; j++) /**< j 是积分点的编号 */
+  {
+    for(int i = 0; i < ldof; i++)
+    {
+      val[i] += ws[j]*phi(i, j)*fval[j];
+    }
+  }
+  for(int i = 0; i < ldof; i++)
+    val[i] *= J;
 }
 
 /**
